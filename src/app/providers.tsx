@@ -2,11 +2,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 import { useAuthStore } from "@/features/auth/store";
-import { useAuthBoot } from "@/features/auth/useAuthBoot";
+import { useAuthBoot } from "@/features/auth/use-auth-boot";
 import { setQueryClientClear, setSessionNavigator } from "@/features/auth/session";
-import { setMerchantGuardNavigator } from "@/features/auth/merchantGuard";
-import { FullScreenLoader } from "@/components/ui/FullScreenLoader";
+import { setMerchantGuardNavigator } from "@/features/auth/merchant-guard";
+import { FullScreenLoader } from "@/components/ui/full-screen-loader";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,7 @@ export function Providers() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthGate />
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -1,13 +1,14 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { LoginPage } from "@/features/auth/pages/LoginPage";
-import { SuspendedPage } from "@/features/auth/pages/SuspendedPage";
-import { RequireActiveMerchant } from "@/features/auth/RequireActiveMerchant";
-import { DashboardLayout } from "@/app/DashboardLayout";
-import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
-import { PosPage } from "@/features/pos/pages/PosPage";
-import { KitchenQueuePage } from "@/features/kitchen-queue/pages/KitchenQueuePage";
-import { OrdersPage } from "@/features/orders/pages/OrdersPage";
-import { NotFound } from "@/pages/NotFound";
+import { LoginPage } from "@/features/auth/pages/login-page";
+import { SuspendedPage } from "@/features/auth/pages/suspended-page";
+import { RequireActiveMerchant } from "@/features/auth/require-active-merchant";
+import { DashboardLayout } from "@/app/dashboard-layout";
+import { DashboardPage } from "@/features/dashboard/pages/dashboard-page";
+import { PosPage } from "@/features/pos/pages/pos-page";
+import { KitchenQueuePage } from "@/features/kitchen-queue/pages/kitchen-queue-page";
+import { OrdersPage } from "@/features/orders/pages/orders-page";
+import { OrderDetailPage } from "@/features/orders/pages/order-detail-page";
+import { NotFound } from "@/pages/not-found";
 
 export const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/login" replace /> },
@@ -30,6 +31,11 @@ export const router = createBrowserRouter([
         handle: { title: "Kitchen Queue" },
       },
       { path: "orders", element: <OrdersPage />, handle: { title: "Orders" } },
+      {
+        path: "orders/:id",
+        element: <OrderDetailPage />,
+        handle: { title: "Order detail", parentTitle: "Orders", parentPath: "/app/orders" },
+      },
     ],
   },
   { path: "*", element: <NotFound /> },

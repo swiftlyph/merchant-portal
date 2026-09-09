@@ -1,12 +1,14 @@
-import { Outlet, useMatches } from "react-router-dom";
+import { Link, Outlet, useMatches } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
   SidebarInset,
@@ -16,6 +18,9 @@ import {
 
 interface RouteHandle {
   title?: string;
+  /** Set on a detail-style route (e.g. order detail) to show a two-level trail. */
+  parentTitle?: string;
+  parentPath?: string;
 }
 
 /**
@@ -33,7 +38,7 @@ interface RouteHandle {
  */
 export function DashboardLayout() {
   const matches = useMatches();
-  const title =
+  const handle =
     matches
       .slice()
       .reverse()
@@ -51,8 +56,22 @@ export function DashboardLayout() {
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             <Breadcrumb>
               <BreadcrumbList>
+                {handle?.parentTitle && (
+                  <>
+                    <BreadcrumbItem className="hidden md:block">
+                      {handle.parentPath ? (
+                        <BreadcrumbLink asChild>
+                          <Link to={handle.parentPath}>{handle.parentTitle}</Link>
+                        </BreadcrumbLink>
+                      ) : (
+                        handle.parentTitle
+                      )}
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                  </>
+                )}
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{title?.title ?? "GASA Merchant"}</BreadcrumbPage>
+                  <BreadcrumbPage>{handle?.title ?? "GASA Merchant"}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
