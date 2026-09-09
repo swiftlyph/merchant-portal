@@ -37,7 +37,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: "Kitchen Queue",
       url: "/app/kitchen-queue",
       icon: <ClockIcon />,
-      badge: kitchenSummary?.pending_count,
+      // A badge draws attention to something needing action — an empty
+      // queue needs none, so 0 hides it rather than showing an unreadable
+      // "0" (undefined is also what NavMain treats as "no badge").
+      badge: kitchenSummary?.pending_count ? kitchenSummary.pending_count : undefined,
     },
     { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
   ]
