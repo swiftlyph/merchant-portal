@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { useKitchenQueueSummary } from "@/features/kitchen-queue/use-kitchen-queue-summary"
 import {
   Sidebar,
   SidebarContent,
@@ -17,13 +18,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-const NAV_MAIN = [
-  { title: "Dashboard", url: "/app/dashboard", icon: <LayoutDashboardIcon /> },
-  { title: "POS", url: "/app/pos", icon: <CreditCardIcon /> },
-  { title: "Kitchen Queue", url: "/app/kitchen-queue", icon: <ClockIcon /> },
-  { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
-]
-
 /**
  * Adapted from shadcn's sidebar-07 block: kept the collapsible-to-icon
  * Sidebar primitive, dropped the block's sample team switcher and
@@ -31,6 +25,26 @@ const NAV_MAIN = [
  * and NavMain/NavUser are this app's own flat-nav / no-dropdown versions.
  */
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  // Today-only (no `all`) — the badge is "what needs attention right now",
+  // matching the kitchen screen's default view. Cheap: the summary endpoint
+  // is a single aggregate query, built specifically to be polled from here.
+  const { data: kitchenSummary } = useKitchenQueueSummary({})
+
+  const navMain = [
+    { title: "Dashboard", url: "/app/dashboard", icon: <LayoutDashboardIcon /> },
+    { title: "POS", url: "/app/pos", icon: <CreditCardIcon /> },
+    {
+      title: "Kitchen Queue",
+      url: "/app/kitchen-queue",
+      icon: <ClockIcon />,
+      // A badge draws attention to something needing action — an empty
+      // queue needs none, so 0 hides it rather than showing an unreadable
+      // "0" (undefined is also what NavMain treats as "no badge").
+      badge: kitchenSummary?.pending_count ? kitchenSummary.pending_count : undefined,
+    },
+    { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
+  ]
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -60,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={NAV_MAIN} />
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
