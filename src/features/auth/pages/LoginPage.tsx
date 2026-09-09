@@ -2,6 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ApiError } from "@/lib/api/client";
 import type { ApiFieldErrors } from "@/lib/api/types";
 import { login } from "../api";
@@ -17,10 +22,11 @@ interface LocationState {
 }
 
 /**
- * Split-screen layout: form on a solid surface (left), a plain brand-color
- * panel (right) reserved for a future product screenshot/illustration. No
- * glass/gradient here — those stay reserved for the dashboard stat cards
- * per README; this page no longer uses either.
+ * shadcn's login-04 block, adapted: same centered-card / split-image layout,
+ * but wired to this app's real auth (mutation, field errors, cooldown,
+ * session-expiry notice) instead of the block's static markup. The OAuth
+ * row and "Sign up" link from the stock block are commented out — no OAuth
+ * providers or self-serve signup exist for this portal yet.
  */
 export function LoginPage() {
   const status = useAuthStore((s) => s.status);
@@ -100,103 +106,132 @@ export function LoginPage() {
   const submitDisabled = mutation.isPending || cooldown > 0;
 
   return (
-    <div className="flex min-h-screen bg-base-100">
+    <div className="relative flex min-h-svh flex-col items-center justify-center bg-muted p-6 md:p-10">
       <div className="absolute right-4 top-4 z-10">
         <ThemeToggle />
       </div>
 
-      {/* Form side */}
-      <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-16 xl:px-24">
-        <div className="mx-auto w-full max-w-sm">
-          <h1 className="mb-1 text-2xl font-bold text-base-content">
-            <span className="text-secondary">GASA</span> Merchant Portal
-          </h1>
-          <p className="mb-6 text-sm text-base-content/70">Sign in to manage your storefront</p>
+      <div className="flex w-full max-w-sm flex-col gap-6 md:max-w-4xl">
+        <Card className="overflow-hidden p-0">
+          <CardContent className="grid p-0 md:grid-cols-2">
+            <form className="p-6 md:p-8" onSubmit={handleSubmit} noValidate>
+              <FieldGroup>
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <h1 className="text-2xl font-bold">
+                    <span className="text-primary">GASA</span> Merchant Portal
+                  </h1>
+                  <p className="text-balance text-muted-foreground">
+                    Sign in to manage your storefront
+                  </p>
+                </div>
 
-          {sessionNotice && (
-            <div role="alert" className="alert alert-warning mb-4 text-sm">
-              <span>{sessionNotice}</span>
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs"
-                onClick={() => setSessionNotice(null)}
-                aria-label="Dismiss"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+                {sessionNotice && (
+                  <Alert variant="default" className="border-warning/40 bg-warning/10">
+                    <AlertDescription className="flex items-center justify-between gap-2 text-warning-foreground">
+                      <span>{sessionNotice}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setSessionNotice(null)}
+                        aria-label="Dismiss"
+                      >
+                        ✕
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-          {formAlert && (
-            <div role="alert" className="alert alert-error mb-4 text-sm">
-              <span>{formAlert}</span>
-            </div>
-          )}
+                {formAlert && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{formAlert}</AlertDescription>
+                  </Alert>
+                )}
 
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-            <label className="floating-label">
-              <span>Email</span>
-              <input
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="you@business.com"
-                className="input input-bordered w-full"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={fieldErrors.email ? true : undefined}
-              />
-              {fieldErrors.email?.map((message) => (
-                <p key={message} className="mt-1 text-sm text-error">
-                  {message}
+                <Field data-invalid={fieldErrors.email ? true : undefined}>
+                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    placeholder="you@business.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    aria-invalid={fieldErrors.email ? true : undefined}
+                  />
+                  <FieldError errors={fieldErrors.email?.map((message) => ({ message }))} />
+                </Field>
+
+                <Field data-invalid={fieldErrors.password ? true : undefined}>
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <Input
+                    id="password"
+                    type="password"
+                    name="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-invalid={fieldErrors.password ? true : undefined}
+                  />
+                  <FieldError errors={fieldErrors.password?.map((message) => ({ message }))} />
+                </Field>
+
+                <Field>
+                  <Button type="submit" disabled={submitDisabled}>
+                    {cooldown > 0
+                      ? `Try again in ${cooldown}s`
+                      : mutation.isPending
+                        ? "Signing in…"
+                        : "Sign in"}
+                  </Button>
+                </Field>
+
+                {/* No OAuth providers for this portal yet — stock login-04
+                    social row kept for when/if that lands.
+                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                  Or continue with
+                </FieldSeparator>
+                <Field className="grid grid-cols-3 gap-4">
+                  <Button variant="outline" type="button">
+                    <span className="sr-only">Login with Apple</span>
+                  </Button>
+                  <Button variant="outline" type="button">
+                    <span className="sr-only">Login with Google</span>
+                  </Button>
+                  <Button variant="outline" type="button">
+                    <span className="sr-only">Login with Meta</span>
+                  </Button>
+                </Field>
+                */}
+
+                {/* No self-serve signup for this portal — merchants are
+                    provisioned, not registered.
+                <FieldDescription className="text-center">
+                  Don&apos;t have an account? <a href="#">Sign up</a>
+                </FieldDescription>
+                */}
+              </FieldGroup>
+            </form>
+
+            {/* Visual side — plain brand-color panel; drop a product
+                screenshot/illustration here when one is available. */}
+            <div className="relative hidden flex-col items-center justify-center gap-6 bg-primary p-12 text-center text-primary-foreground md:flex">
+              <div className="flex aspect-video w-full items-center justify-center rounded-lg border-2 border-dashed border-primary-foreground/30 bg-primary-foreground/10">
+                <span className="text-sm text-primary-foreground/70">
+                  Product screenshot placeholder
+                </span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold">Run your storefront from one place</p>
+                <p className="mt-1 text-sm text-primary-foreground/80">
+                  Orders, payouts, and inventory — all in the merchant portal.
                 </p>
-              ))}
-            </label>
-            <label className="floating-label">
-              <span>Password</span>
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="input input-bordered w-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={fieldErrors.password ? true : undefined}
-              />
-              {fieldErrors.password?.map((message) => (
-                <p key={message} className="mt-1 text-sm text-error">
-                  {message}
-                </p>
-              ))}
-            </label>
-            <button type="submit" className="btn btn-primary mt-2" disabled={submitDisabled}>
-              {cooldown > 0
-                ? `Try again in ${cooldown}s`
-                : mutation.isPending
-                  ? "Signing in…"
-                  : "Sign in"}
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* Visual side — plain brand-color panel; drop a product screenshot/
-          illustration into the placeholder below when one is available. */}
-      <div className="relative hidden w-1/2 items-center justify-center bg-secondary p-12 lg:flex">
-        <div className="flex w-full max-w-md flex-col items-center gap-6 text-center text-secondary-content">
-          <div className="flex aspect-video w-full items-center justify-center rounded-box border-2 border-dashed border-secondary-content/30 bg-secondary-content/10">
-            <span className="text-sm text-secondary-content/70">
-              Product screenshot placeholder
-            </span>
-          </div>
-          <div>
-            <p className="text-lg font-semibold">Run your storefront from one place</p>
-            <p className="mt-1 text-sm text-secondary-content/80">
-              Orders, payouts, and inventory — all in the merchant portal.
-            </p>
-          </div>
-        </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

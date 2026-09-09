@@ -18,7 +18,7 @@ export function getSystemTheme(): Theme {
 }
 
 export function applyTheme(theme: Theme): void {
-  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.classList.toggle("dark", theme === "gasadark");
   try {
     localStorage.setItem(STORAGE_KEY, theme);
   } catch {

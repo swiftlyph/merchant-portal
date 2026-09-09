@@ -6,6 +6,7 @@ import { useAuthBoot } from "@/features/auth/useAuthBoot";
 import { setQueryClientClear, setSessionNavigator } from "@/features/auth/session";
 import { setMerchantGuardNavigator } from "@/features/auth/merchantGuard";
 import { FullScreenLoader } from "@/components/ui/FullScreenLoader";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,7 +42,9 @@ function AuthGate() {
 export function Providers() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate />
+      <TooltipProvider>
+        <AuthGate />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }
