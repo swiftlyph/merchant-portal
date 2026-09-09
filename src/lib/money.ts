@@ -5,6 +5,12 @@
  * on some values). Intl.NumberFormat works directly off a major-unit number,
  * so cents are divided only right at the formatting boundary, in integer-safe
  * arithmetic, never accumulated or compared as a float elsewhere.
+ *
+ * Prefer the API's own `*_formatted` string where one is provided (the
+ * orders endpoints ship one alongside every `*_cents` field, rendered
+ * server-side by the same code that formats receipts and kitchen tickets)
+ * — this helper is the fallback for a cents value with no formatted twin,
+ * and for tests that build fixtures without going through the API layer.
  */
 
 const formatters = new Map<string, Intl.NumberFormat>();

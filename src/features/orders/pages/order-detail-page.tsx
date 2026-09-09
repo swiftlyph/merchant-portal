@@ -5,7 +5,6 @@ import { useOrder } from "../use-order";
 import { useCompleteOrder, useVoidOrder } from "../use-order-transitions";
 import { OrderStatusBadge } from "../components/order-status-badge";
 import { PAYMENT_METHOD_LABEL, formatDateTime } from "../format";
-import { formatCents } from "@/lib/money";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -179,23 +178,23 @@ export function OrderDetailPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {order.items.map((item, i) => (
-            <TableRow key={i}>
+          {order.items.map((item) => (
+            <TableRow key={item.id}>
               <TableCell>
                 <div className="flex flex-col">
                   <span>{item.product_name}</span>
                   {item.add_ons.length > 0 && (
                     <span className="text-xs text-muted-foreground">
                       {item.add_ons
-                        .map((addOn) => `${addOn.name} (+${formatCents(addOn.price_cents, order.currency)})`)
+                        .map((addOn) => `${addOn.name} (+${addOn.price_formatted})`)
                         .join(", ")}
                     </span>
                   )}
                 </div>
               </TableCell>
               <TableCell>{item.quantity}</TableCell>
-              <TableCell>{formatCents(item.unit_price_cents, order.currency)}</TableCell>
-              <TableCell>{formatCents(item.line_total_cents, order.currency)}</TableCell>
+              <TableCell>{item.unit_price_formatted}</TableCell>
+              <TableCell>{item.line_total_formatted}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -207,8 +206,7 @@ export function OrderDetailPage() {
           <div className="font-medium">{PAYMENT_METHOD_LABEL[order.payment_method]}</div>
           {order.payment_method === "split" && (
             <div className="text-muted-foreground">
-              Cash {formatCents(order.cash_cents ?? 0, order.currency)} · GCash{" "}
-              {formatCents(order.gcash_cents ?? 0, order.currency)}
+              Cash {order.cash_formatted ?? "—"} · GCash {order.gcash_formatted ?? "—"}
             </div>
           )}
           {order.completed_at && (
@@ -224,15 +222,15 @@ export function OrderDetailPage() {
         <div className="flex w-full max-w-xs flex-col gap-1 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Subtotal</span>
-            <span>{formatCents(order.subtotal_cents, order.currency)}</span>
+            <span>{order.subtotal_formatted}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Discount</span>
-            <span>-{formatCents(order.discount_cents, order.currency)}</span>
+            <span>-{order.discount_formatted}</span>
           </div>
           <div className="flex justify-between font-medium">
             <span>Total</span>
-            <span>{formatCents(order.total_cents, order.currency)}</span>
+            <span>{order.total_formatted}</span>
           </div>
         </div>
       </div>

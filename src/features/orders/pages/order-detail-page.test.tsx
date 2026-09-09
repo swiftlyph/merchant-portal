@@ -38,19 +38,28 @@ describe("OrderDetailPage", () => {
     vi.clearAllMocks();
   });
 
-  it("renders line items, add-ons, subtotal/discount/total", async () => {
+  it("renders line items, add-ons, subtotal/discount/total from the server's formatted strings", async () => {
     vi.mocked(ordersApi.fetchOrder).mockResolvedValue(
       makeOrder({
         subtotal_cents: 34500,
+        subtotal_formatted: "₱345.00",
         discount_cents: 5000,
+        discount_formatted: "₱50.00",
         total_cents: 29500,
+        total_formatted: "₱295.00",
         items: [
           {
+            id: 9,
+            product_id: 3,
             product_name: "Cappuccino",
             unit_price_cents: 14000,
+            unit_price_formatted: "₱140.00",
             quantity: 1,
             line_total_cents: 16500,
-            add_ons: [{ name: "Extra shot", price_cents: 2500 }],
+            line_total_formatted: "₱165.00",
+            add_ons: [
+              { id: 1, name: "Extra shot", price_cents: 2500, price_formatted: "₱25.00" },
+            ],
           },
         ],
       }),
@@ -67,7 +76,13 @@ describe("OrderDetailPage", () => {
 
   it("shows the cash/gcash breakdown for a split payment", async () => {
     vi.mocked(ordersApi.fetchOrder).mockResolvedValue(
-      makeOrder({ payment_method: "split", cash_cents: 14750, gcash_cents: 14750 }),
+      makeOrder({
+        payment_method: "split",
+        cash_cents: 14750,
+        cash_formatted: "₱147.50",
+        gcash_cents: 14750,
+        gcash_formatted: "₱147.50",
+      }),
     );
 
     renderDetailPage();

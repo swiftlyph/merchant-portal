@@ -215,7 +215,16 @@ describe("OrdersPage", () => {
   it("paginates using links/meta and reflects the page in the URL", async () => {
     vi.mocked(ordersApi.fetchOrders).mockResolvedValue(
       makeOrdersPage({
-        meta: { current_page: 1, last_page: 3, per_page: 10, total: 30 },
+        meta: {
+          current_page: 1,
+          from: 1,
+          last_page: 3,
+          links: [],
+          path: "/api/v1/merchant/orders",
+          per_page: 10,
+          to: 10,
+          total: 30,
+        },
       }),
     );
     renderOrdersPage();

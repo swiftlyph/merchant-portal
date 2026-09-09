@@ -2,7 +2,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useOrders } from "../use-orders";
 import { OrderStatusBadge } from "../components/order-status-badge";
 import { PAYMENT_METHOD_LABEL, formatDateTime } from "../format";
-import { formatCents } from "@/lib/money";
 import type { OrderStatus } from "../types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -218,7 +217,7 @@ export function OrdersPage() {
                   <TableCell>{formatDateTime(order.created_at)}</TableCell>
                   <TableCell>{order.items.length}</TableCell>
                   <TableCell>{PAYMENT_METHOD_LABEL[order.payment_method]}</TableCell>
-                  <TableCell>{formatCents(order.total_cents, order.currency)}</TableCell>
+                  <TableCell>{order.total_formatted}</TableCell>
                   <TableCell>
                     <OrderStatusBadge status={order.status} />
                   </TableCell>
