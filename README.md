@@ -7,7 +7,9 @@ REST API (repo not included here) at `VITE_API_URL`, all routes under
 ## Stack
 
 - React 18 + Vite + TypeScript (strict)
-- Tailwind CSS v4 + DaisyUI 5
+- Tailwind CSS v4 + shadcn/ui (Radix primitives, `class-variance-authority`)
+- Raleway (body) / Figtree (headings) via `@fontsource-variable`, Tabler +
+  Lucide icons
 - React Router
 - TanStack Query for **all** server state — no server data in `useState`
 - Vitest + React Testing Library
@@ -44,25 +46,57 @@ real API is worse than no mock — it makes `npm run dev` lie about what
 works. If a contract change lands and nobody has time to update the mock
 immediately, delete the mock rather than leave it stale.
 
-## Theme policy
+## UI: shadcn/ui, not DaisyUI
 
-Two DaisyUI themes are defined in `src/index.css`: `gasa` (light, default) and
-`gasadark` (dark, `prefersdark`). The active theme is set via `data-theme` on
-`<html>`, applied by an inline script in `index.html` before first paint (no
-flash of the wrong theme) and toggled/persisted to `localStorage` at runtime
-(`src/lib/theme.ts`, `src/components/ui/ThemeToggle.tsx`).
+The app moved off DaisyUI onto shadcn/ui: Tailwind v4 + Radix primitives,
+generated into `src/components/ui/` (button, card, field, sidebar, etc.) and
+customized in place rather than imported from a package. Brand tokens come
+from a shadcn preset (`src/index.css`, `:root` / `.dark`) — a warm orange
+`primary`, 0.45rem base radius, Raleway/Figtree fonts.
 
-**Solid vs. glass:**
+- Light theme is the default (`:root`); dark is the `.dark` class on
+  `<html>`. Same toggle mechanism as before the migration — `data-theme`
+  applied pre-paint by an inline script in `index.html`, persisted via
+  `src/lib/theme.ts` / `src/components/ui/ThemeToggle.tsx` (theme names
+  `"gasa"`/`"gasadark"` and the localStorage key are unchanged, even though
+  the underlying CSS is no longer DaisyUI).
+- All colors go through the shadcn CSS variables (`--primary`,
+  `--muted-foreground`, `--sidebar`, etc.) — no raw hex in components. The
+  `brand-gradient` utility in `index.css` is the one intentional exception,
+  reserved for the dashboard stat cards; never place it or glass behind body
+  text or a data table.
+- `src/components/login-form.tsx` is the **unmodified shadcn `login-04`
+  scaffold** (kept for reference / re-scaffolding) — it is not imported
+  anywhere. The real login page is `src/features/auth/pages/LoginPage.tsx`,
+  which adapts the same block's layout to this app's actual auth logic.
 
-- The app shell, tables, and forms use solid DaisyUI surfaces
-  (`bg-base-100` / `base-200` / `base-300`). This is the default everywhere.
-- Glassmorphism is an **accent only**, reserved for the login card and
-  dashboard stat cards, layered over the `brand-gradient` utility
-  (`src/index.css`). Never place glass behind body text or a data table.
-- All colors go through DaisyUI semantic tokens (`primary`, `base-content`,
-  etc.) — no raw hex or arbitrary Tailwind color values in components. The
-  brand gradient in `index.css` is the one intentional exception, since it
-  exists specifically to back the two approved glass accents.
+## Login page
+
+Split-screen layout (`LoginPage.tsx`, shadcn `login-04` adapted): a `Card`
+with `md:grid-cols-2` — form fields (email, password, primary CTA) on the
+left, a plain `bg-primary` panel on the right (hidden below `md`) reserved
+for a future product screenshot, currently a dashed placeholder. The OAuth
+row and sign-up link from the stock block are commented out, not deleted —
+no OAuth providers or self-serve signup exist for this portal. The "GASA"
+wordmark in the heading uses `text-primary`.
+
+## App shell: sidebar layout
+
+`/app` now renders `DashboardLayout.tsx` (adapted from shadcn's `sidebar-07`
+block) instead of a bare page: a collapsible-to-icon left nav
+(`AppSidebar`/`NavMain`/`NavUser`) plus a header (breadcrumb + theme toggle)
+wrapping an `<Outlet />` for four nested routes:
+
+| Path | Page | Status |
+| --- | --- | --- |
+| `/app/dashboard` | `DashboardPage` | Only real content: `useMe` identity line |
+| `/app/pos` | `PosPage` | `PlaceholderPage` |
+| `/app/kitchen-queue` | `KitchenQueuePage` | `PlaceholderPage` |
+| `/app/orders` | `OrdersPage` | `PlaceholderPage` |
+
+`/app` index-redirects to `/app/dashboard`. `PlaceholderPage` (dashed border,
+"This section is coming soon") is the shared stand-in until each section has
+real content — swap it out per-route as they're built.
 
 ## API error shape
 
@@ -105,11 +139,11 @@ since roles could go stale, and is always rehydrated from `GET /auth/me`.
   only trigger it once.
 - **Logout** (`useLogout.ts`): clears store/cache and redirects to `/login`
   regardless of whether the `/auth/logout` call itself succeeds.
-- **Live protected query** (`useMe.ts`): `/app` calls `GET /auth/me` once via
-  TanStack Query (`staleTime: Infinity`, no polling). Beyond fetching the
-  name, this is what makes a server-side token revocation show up as a real
-  session-expiry (via the un-suppressed 401 path above) while the user is
-  actively on the dashboard, not only at boot/refresh.
+- **Live protected query** (`useMe.ts`): the dashboard calls `GET /auth/me`
+  once via TanStack Query (`staleTime: Infinity`, no polling). Beyond
+  fetching the name, this is what makes a server-side token revocation show
+  up as a real session-expiry (via the un-suppressed 401 path above) while
+  the user is actively on the dashboard, not only at boot/refresh.
 
 ## Suspended merchants
 
@@ -136,7 +170,7 @@ concern, not a login error.
 
 ## Status
 
-Phase F2.1 — suspended-merchant handling: routing keyed off
-`selectIsMerchantActive`, a `/suspended` page, and the mid-session
-`merchant_inactive` defense-in-depth path. No merchant data fetching beyond
-`/auth/me` yet — `/app` is still a placeholder shell.
+Sidebar/POS scaffold — UI migrated from DaisyUI to shadcn/ui, `/app` now a
+sidebar shell (`DashboardLayout`) with four nested routes (dashboard, POS,
+kitchen queue, orders), three of which are still `PlaceholderPage`. No
+merchant data fetching exists yet beyond `/auth/me`.
