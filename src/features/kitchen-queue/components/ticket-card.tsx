@@ -187,7 +187,7 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
 
         <StubDivider />
 
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-card px-5 pt-4 pb-4">
+        <div className="scrollbar-thin flex flex-1 flex-col gap-3 overflow-y-auto bg-card px-5 pt-4 pb-4">
           <ul className="flex flex-col gap-3">
             {order.items.map((item, index) => (
               <li key={item.id}>

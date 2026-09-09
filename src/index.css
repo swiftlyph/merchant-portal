@@ -20,6 +20,37 @@
   );
 }
 
+/*
+  A slim scrollbar in the existing border/muted-foreground tokens, for a
+  scroll area that needs to look intentional rather than like a stray OS
+  chrome element (e.g. the kitchen ticket's internal item-list scroll).
+  Covers both engines: scrollbar-width/-color for Firefox and modern
+  Chromium, ::-webkit-scrollbar for Safari/older WebKit — no JS, no new
+  dependency.
+*/
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted-foreground);
+  }
+}
+
 @theme inline {
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
