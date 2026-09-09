@@ -3,6 +3,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
@@ -11,6 +12,8 @@ interface NavMainItem {
   title: string
   url: string
   icon?: React.ReactNode
+  /** e.g. the kitchen queue's pending count. undefined (no data yet) hides the badge; 0 still shows. */
+  badge?: number
 }
 
 /**
@@ -42,6 +45,11 @@ function NavMainMenuItem({ item }: { item: NavMainItem }) {
           <span>{item.title}</span>
         </Link>
       </SidebarMenuButton>
+      {item.badge !== undefined && (
+        <SidebarMenuBadge aria-label={`${item.badge} pending in ${item.title}`}>
+          {item.badge}
+        </SidebarMenuBadge>
+      )}
     </SidebarMenuItem>
   )
 }
