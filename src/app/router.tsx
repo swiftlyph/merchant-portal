@@ -8,6 +8,8 @@ import { PosPage } from "@/features/pos/pages/pos-page";
 import { KitchenQueuePage } from "@/features/kitchen-queue/pages/kitchen-queue-page";
 import { OrdersPage } from "@/features/orders/pages/orders-page";
 import { OrderDetailPage } from "@/features/orders/pages/order-detail-page";
+import { CashDrawerPage } from "@/features/cash-sessions/pages/cash-drawer-page";
+import { SessionDetailPage } from "@/features/cash-sessions/pages/session-detail-page";
 import { NotFound } from "@/pages/not-found";
 
 export const router = createBrowserRouter([
@@ -35,6 +37,16 @@ export const router = createBrowserRouter([
         path: "orders/:id",
         element: <OrderDetailPage />,
         handle: { title: "Order detail", parentTitle: "Orders", parentPath: "/app/orders" },
+      },
+      { path: "cash-drawer", element: <CashDrawerPage />, handle: { title: "Cash Drawer" } },
+      {
+        path: "cash-drawer/sessions/:id",
+        element: <SessionDetailPage />,
+        handle: {
+          title: "Session detail",
+          parentTitle: "Cash Drawer",
+          parentPath: "/app/cash-drawer",
+        },
       },
     ],
   },
