@@ -47,5 +47,15 @@ export function useCompleteTicket(id: number | string) {
     });
   }
 
-  return { complete, isPending: mutation.isPending };
+  return {
+    complete,
+    isPending: mutation.isPending,
+    // Exposed so the ticket's exit animation (triggered optimistically on
+    // the third click, before the request resolves) can be cancelled if
+    // completion genuinely fails — an invalid_transition 422 removes the
+    // ticket via invalidation regardless, but any OTHER failure means the
+    // order is still legitimately pending and the ticket should stay.
+    isError: mutation.isError,
+    reset: mutation.reset,
+  };
 }

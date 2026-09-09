@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IconAlertTriangle, IconRefresh } from "@tabler/icons-react";
 import { useKitchenQueue } from "../use-kitchen-queue";
@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { KitchenOrder } from "../types";
 
 function useAllDaysParam(): [boolean, (value: boolean) => void] {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,7 +65,22 @@ export function KitchenQueuePage() {
   const { data: summary } = useKitchenQueueSummary(filters);
 
   const lastUpdated = useRelativeTime(dataUpdatedAt || undefined);
-  const orders = data?.data ?? [];
+  const serverOrders = data?.data ?? [];
+
+  // A completed order can drop out of the server list before its own
+  // 450ms pull-away animation has had time to play — on a fast connection,
+  // the refetch that removes it from `serverOrders` can land well inside
+  // that window. Holding its last-known data here keeps the ticket
+  // mounted (and its own useEffect-driven exit still playing) until
+  // TicketCard itself reports the animation actually finished.
+  const [exitingOrders, setExitingOrders] = useState<Map<number, KitchenOrder>>(new Map());
+  const latestOrderRef = useRef<Map<number, KitchenOrder>>(new Map());
+  latestOrderRef.current = new Map(serverOrders.map((o) => [o.id, o]));
+
+  const orders = [
+    ...serverOrders,
+    ...[...exitingOrders.values()].filter((o) => !serverOrders.some((s) => s.id === o.id)),
+  ];
   const pendingCount = summary?.pending_count ?? orders.length;
   const isTruncated = pendingCount > orders.length;
 
@@ -150,7 +166,26 @@ export function KitchenQueuePage() {
       {!isPending && data && orders.length > 0 && view === "tickets" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {orders.map((order) => (
-            <TicketCard key={order.id} order={order} />
+            <TicketCard
+              key={order.id}
+              order={order}
+              onExitStart={() => {
+                const snapshot = latestOrderRef.current.get(order.id) ?? order;
+                setExitingOrders((current) => {
+                  const next = new Map(current);
+                  next.set(order.id, snapshot);
+                  return next;
+                });
+              }}
+              onExitComplete={() => {
+                setExitingOrders((current) => {
+                  if (!current.has(order.id)) return current;
+                  const next = new Map(current);
+                  next.delete(order.id);
+                  return next;
+                });
+              }}
+            />
           ))}
         </div>
       )}

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { IconAlertTriangle, IconClock, IconDots } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,14 +105,62 @@ function StubDivider() {
  * finish a ticket. No confirm dialog on either path: the gesture (or the
  * explicit menu action) IS the confirmation.
  */
-export function TicketCard({ order }: { order: KitchenOrder }) {
-  const { complete, isPending } = useCompleteTicket(order.id);
+export function TicketCard({
+  order,
+  onExitStart,
+  onExitComplete,
+}: {
+  order: KitchenOrder;
+  /**
+   * Fired the instant the pull-away animation starts (the third click),
+   * before the request even resolves. The parent uses this to keep the
+   * order in its own locally-held "still animating out" set — otherwise
+   * a fast connection can invalidate the query and drop this order from
+   * the server list before the 450ms animation has had time to play,
+   * unmounting the card mid-motion and cutting it short.
+   */
+  onExitStart?: () => void;
+  /**
+   * Fired once the pull-away exit animation actually finishes playing
+   * (the CSS animationend event, not a guessed timeout — stays correct
+   * even if the animation's own duration changes later). The parent
+   * drops the order from its held-open set at this point, letting the
+   * grid actually collapse around the gap.
+   */
+  onExitComplete?: () => void;
+}) {
+  const { complete, isPending, isError, reset: resetMutation } = useCompleteTicket(order.id);
   const waitingSeconds = useTickingSeconds(order.waiting_seconds);
   const level = staleness(waitingSeconds);
   const badge = STALENESS_BADGE[level];
 
-  const { progress, requiredClicks, register, reset } = useTripleClick(complete);
+  // Fires the pull-away animation the INSTANT the third click registers,
+  // not after the request resolves — the gesture's own feedback shouldn't
+  // wait on network latency. If completion genuinely fails afterward (any
+  // error other than invalid_transition, which already removes the
+  // ticket via query invalidation regardless), the order is still really
+  // pending, so the ticket snaps back rather than staying visually gone
+  // on a screen a barista is relying on.
+  const [isExiting, setIsExiting] = useState(false);
+
+  const { progress, requiredClicks, register, reset } = useTripleClick(() => {
+    setIsExiting(true);
+    onExitStart?.();
+    complete();
+  });
   const { containerRef, setItemRef, hiddenBelowCount } = useHiddenBelowCount(order.items.length);
+
+  useEffect(() => {
+    if (isExiting && isError) {
+      setIsExiting(false);
+      resetMutation();
+      // The exit never actually finished playing, but the parent's
+      // held-open set needs to release this order the same way — it's
+      // no longer exiting either way, and this ticket is back to
+      // rendering from the live server list from here on.
+      onExitComplete?.();
+    }
+  }, [isExiting, isError, resetMutation, onExitComplete]);
 
   return (
     <div
@@ -119,21 +168,31 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
       className={cn(
         "relative transition-opacity",
         "cursor-pointer touch-none select-none",
-        isPending && "pointer-events-none opacity-50",
+        (isPending || isExiting) && "pointer-events-none",
+        isPending && !isExiting && "opacity-50",
+        isExiting && "animate-ticket-pull-away",
       )}
       role="button"
       tabIndex={0}
       aria-label={`Order ${order.order_number}, waiting ${formatWaitingTime(waitingSeconds)}. Click three times, or use the menu, to mark it complete.`}
       onClick={() => {
-        if (!isPending) register();
+        if (!isPending && !isExiting) register();
       }}
       onKeyDown={(e) => {
-        if (isPending) return;
+        if (isPending || isExiting) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           register();
         } else if (e.key === "Escape") {
           reset();
+        }
+      }}
+      onAnimationEnd={(e) => {
+        // Only the card's own pull-away animation should trigger this —
+        // ignore animationend bubbling up from anything else nested
+        // inside (Radix's dropdown content, e.g.).
+        if (isExiting && e.target === e.currentTarget) {
+          onExitComplete?.();
         }
       }}
     >

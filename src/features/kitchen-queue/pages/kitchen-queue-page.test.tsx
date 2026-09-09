@@ -162,6 +162,56 @@ describe("KitchenQueuePage", () => {
     await waitFor(() => expect(ordersApi.completeOrder).toHaveBeenCalledWith(1));
   });
 
+  it("plays the pull-away exit animation immediately on the third click, before the request resolves", async () => {
+    let resolveComplete!: (value: unknown) => void;
+    vi.mocked(kitchenApi.fetchKitchenQueue).mockResolvedValue(
+      makeKitchenQueueResponse({ data: [makeKitchenOrder({ id: 1, order_number: "ORD-000001" })] }),
+    );
+    vi.mocked(ordersApi.completeOrder).mockReturnValue(
+      new Promise((resolve) => {
+        resolveComplete = resolve;
+      }) as never,
+    );
+
+    renderPage();
+    const user = userEvent.setup();
+
+    const ticket = await screen.findByRole("button", { name: /^Order ORD-000001,/ });
+    await user.click(ticket);
+    await user.click(ticket);
+    await user.click(ticket);
+
+    // The animation class is applied the instant the gesture completes —
+    // not after the (still-unresolved) network request settles.
+    expect(ticket).toHaveClass("animate-ticket-pull-away");
+    expect(ordersApi.completeOrder).toHaveBeenCalledWith(1);
+
+    resolveComplete({});
+  });
+
+  it("snaps a ticket back (interactive again) if completion genuinely fails, rather than leaving it visually gone", async () => {
+    vi.mocked(kitchenApi.fetchKitchenQueue).mockResolvedValue(
+      makeKitchenQueueResponse({ data: [makeKitchenOrder({ id: 1, order_number: "ORD-000001" })] }),
+    );
+    vi.mocked(ordersApi.completeOrder).mockRejectedValue(
+      new ApiError({ status: 500, message: "Server error." }),
+    );
+
+    renderPage();
+    const user = userEvent.setup();
+
+    const ticket = await screen.findByRole("button", { name: /^Order ORD-000001,/ });
+    await user.click(ticket);
+    await user.click(ticket);
+    await user.click(ticket);
+
+    // The order didn't actually complete — the ticket must recover, not
+    // stay stuck mid-exit on a screen the kitchen is relying on.
+    await waitFor(() => expect(ticket).not.toHaveClass("animate-ticket-pull-away"));
+    expect(ticket).not.toHaveClass("pointer-events-none");
+    expect(screen.getByText("ORD-000001")).toBeInTheDocument();
+  });
+
   it("a 422 invalid_transition removes the ticket and shows a toast, without a dead ticket left on screen", async () => {
     vi.mocked(kitchenApi.fetchKitchenQueue)
       .mockResolvedValueOnce(

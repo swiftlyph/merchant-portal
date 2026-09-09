@@ -26,6 +26,16 @@ export function useTripleClick(onComplete: () => void) {
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
+  // A setState UPDATER function runs during React's next render, not
+  // synchronously at the call site — so a local variable set inside it and
+  // read right after setProgress(...) would still read its pre-update
+  // value. onComplete has to fire from an effect that reacts to the
+  // completion actually having happened, not from code that assumes the
+  // updater already ran. This ref is the signal: register() marks it right
+  // before the click that just reached REQUIRED_CLICKS, and the effect
+  // below fires onComplete once that's actually reflected in state.
+  const justCompletedRef = useRef(false);
+
   const clearResetTimer = useCallback(() => {
     if (timeoutRef.current !== null) {
       clearTimeout(timeoutRef.current);
@@ -35,13 +45,20 @@ export function useTripleClick(onComplete: () => void) {
 
   useEffect(() => () => clearResetTimer(), [clearResetTimer]);
 
+  useEffect(() => {
+    if (progress === 0 && justCompletedRef.current) {
+      justCompletedRef.current = false;
+      onCompleteRef.current();
+    }
+  }, [progress]);
+
   const register = useCallback(() => {
     setProgress((current) => {
       const next = current + 1;
 
       if (next >= REQUIRED_CLICKS) {
         clearResetTimer();
-        onCompleteRef.current();
+        justCompletedRef.current = true;
         return 0;
       }
 
