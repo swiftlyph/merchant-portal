@@ -113,7 +113,7 @@ export function LoginPage() {
       <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-16 xl:px-24">
         <div className="mx-auto w-full max-w-sm">
           <h1 className="mb-1 text-2xl font-bold text-foreground">
-            <span className="text-secondary">GASA</span> Merchant Portal
+            <span className="text-primary">GASA</span> Merchant Portal
           </h1>
           <p className="mb-6 text-sm text-muted-foreground">Sign in to manage your storefront</p>
 
@@ -190,16 +190,16 @@ export function LoginPage() {
 
       {/* Visual side — plain brand-color panel; drop a product screenshot/
           illustration into the placeholder below when one is available. */}
-      <div className="relative hidden w-1/2 items-center justify-center bg-secondary p-12 lg:flex">
-        <div className="flex w-full max-w-md flex-col items-center gap-6 text-center text-secondary-foreground">
-          <div className="flex aspect-video w-full items-center justify-center rounded-lg border-2 border-dashed border-secondary-foreground/30 bg-secondary-foreground/10">
-            <span className="text-sm text-secondary-foreground/70">
+      <div className="relative hidden w-1/2 items-center justify-center bg-primary p-12 lg:flex">
+        <div className="flex w-full max-w-md flex-col items-center gap-6 text-center text-primary-foreground">
+          <div className="flex aspect-video w-full items-center justify-center rounded-lg border-2 border-dashed border-primary-foreground/30 bg-primary-foreground/10">
+            <span className="text-sm text-primary-foreground/70">
               Product screenshot placeholder
             </span>
           </div>
           <div>
             <p className="text-lg font-semibold">Run your storefront from one place</p>
-            <p className="mt-1 text-sm text-secondary-foreground/80">
+            <p className="mt-1 text-sm text-primary-foreground/80">
               Orders, payouts, and inventory — all in the merchant portal.
             </p>
           </div>

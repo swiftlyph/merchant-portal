@@ -13,6 +13,9 @@
     "mock-api": "node scripts/mock-api.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@tabler/icons-react": "^3.46.0",
     "@tanstack/react-query": "^5.59.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
