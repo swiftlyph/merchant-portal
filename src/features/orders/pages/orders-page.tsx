@@ -42,9 +42,14 @@ function isOrderStatus(value: string): value is OrderStatus {
 }
 
 /**
- * `/app/orders`. All filter/page state lives in the URL (?status=&date=&page=)
- * so a refresh or a shared link restores exactly the same view — nothing
- * here lives in useState, per the TanStack-Query-for-all-server-state rule.
+ * `/app/orders`. Status/date/page live in the URL (?status=&date=&page=) and
+ * drive the server query, so a refresh or a shared link restores exactly
+ * that view — nothing here lives in useState, per the TanStack-Query-for-
+ * all-server-state rule. The order-number search box (?q=) is the one
+ * exception: the backend contract has no search param, so it's a client-
+ * side filter over the already-fetched page rather than a server query —
+ * still kept in the URL for the same shareable/refreshable reason, it's
+ * just not passed to useOrders.
  */
 export function OrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -52,6 +57,7 @@ export function OrdersPage() {
 
   const statusParam = searchParams.get("status") ?? "all";
   const dateParam = searchParams.get("date") ?? "";
+  const queryParam = searchParams.get("q") ?? "";
   const pageParam = Number(searchParams.get("page") ?? "1");
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
@@ -62,6 +68,13 @@ export function OrdersPage() {
   };
 
   const { data, isPending, isError, error, refetch, isFetching } = useOrders(filters);
+
+  const normalizedQuery = queryParam.trim().toLowerCase();
+  const visibleOrders = normalizedQuery
+    ? (data?.data ?? []).filter((order) =>
+        order.order_number.toLowerCase().includes(normalizedQuery),
+      )
+    : (data?.data ?? []);
 
   function updateParams(next: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams);
@@ -83,6 +96,10 @@ export function OrdersPage() {
     updateParams({ date: value || null, page: null });
   }
 
+  function handleQueryChange(value: string) {
+    updateParams({ q: value || null });
+  }
+
   function goToPage(nextPage: number) {
     updateParams({ page: nextPage > 1 ? String(nextPage) : null });
   }
@@ -97,6 +114,20 @@ export function OrdersPage() {
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="orders-search" className="text-xs text-muted-foreground">
+            Search
+          </label>
+          <Input
+            id="orders-search"
+            type="search"
+            placeholder="Order number…"
+            className="w-48"
+            value={queryParam}
+            onChange={(e) => handleQueryChange(e.target.value)}
+          />
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label htmlFor="orders-status-filter" className="text-xs text-muted-foreground">
             Status
@@ -128,11 +159,11 @@ export function OrdersPage() {
           />
         </div>
 
-        {(statusParam !== "all" || dateParam) && (
+        {(statusParam !== "all" || dateParam || queryParam) && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => updateParams({ status: null, date: null, page: null })}
+            onClick={() => updateParams({ status: null, date: null, q: null, page: null })}
           >
             Clear filters
           </Button>
@@ -152,16 +183,18 @@ export function OrdersPage() {
         </div>
       )}
 
-      {!isPending && !isError && data && data.data.length === 0 && (
+      {!isPending && !isError && data && visibleOrders.length === 0 && (
         <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border p-10 text-center">
           <p className="text-sm font-medium">No orders found</p>
           <p className="text-sm text-muted-foreground">
-            Try a different status or date filter.
+            {normalizedQuery
+              ? `No orders on this page match "${queryParam}".`
+              : "Try a different status or date filter."}
           </p>
         </div>
       )}
 
-      {!isPending && !isError && data && data.data.length > 0 && (
+      {!isPending && !isError && data && visibleOrders.length > 0 && (
         <>
           <Table className={isFetching ? "opacity-60 transition-opacity" : undefined}>
             <TableHeader>
@@ -175,7 +208,7 @@ export function OrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.data.map((order) => (
+              {visibleOrders.map((order) => (
                 <TableRow
                   key={order.id}
                   className="cursor-pointer"

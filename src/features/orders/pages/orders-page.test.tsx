@@ -161,6 +161,57 @@ describe("OrdersPage", () => {
     );
   });
 
+  it("filters the currently-loaded rows by order number via the search box, client-side", async () => {
+    vi.mocked(ordersApi.fetchOrders).mockResolvedValue(
+      makeOrdersPage({
+        data: [
+          makeOrder({ id: 1, order_number: "ORD-000001" }),
+          makeOrder({ id: 2, order_number: "ORD-000002" }),
+        ],
+      }),
+    );
+    renderOrdersPage();
+    const user = userEvent.setup();
+
+    await screen.findByText("ORD-000001");
+    await user.type(screen.getByLabelText("Search"), "000002");
+
+    expect(screen.queryByText("ORD-000001")).not.toBeInTheDocument();
+    expect(screen.getByText("ORD-000002")).toBeInTheDocument();
+    // Search is client-side over the already-fetched page — never sent to the API.
+    for (const call of vi.mocked(ordersApi.fetchOrders).mock.calls) {
+      expect(call[0]).not.toHaveProperty("q");
+    }
+  });
+
+  it("reflects the search term in the URL and shows a no-match empty state", async () => {
+    vi.mocked(ordersApi.fetchOrders).mockResolvedValue(
+      makeOrdersPage({ data: [makeOrder({ order_number: "ORD-000001" })] }),
+    );
+    renderOrdersPage();
+    const user = userEvent.setup();
+
+    await screen.findByText("ORD-000001");
+    await user.type(screen.getByLabelText("Search"), "nope");
+
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("q=nope"));
+    expect(await screen.findByText("No orders found")).toBeInTheDocument();
+    expect(screen.getByText('No orders on this page match "nope".')).toBeInTheDocument();
+  });
+
+  it("clear filters also clears the search box", async () => {
+    vi.mocked(ordersApi.fetchOrders).mockResolvedValue(
+      makeOrdersPage({ data: [makeOrder({ order_number: "ORD-000001" })] }),
+    );
+    renderOrdersPage("/app/orders?q=nope");
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Clear filters" }));
+
+    expect(screen.getByLabelText("Search")).toHaveValue("");
+    expect(await screen.findByText("ORD-000001")).toBeInTheDocument();
+  });
+
   it("paginates using links/meta and reflects the page in the URL", async () => {
     vi.mocked(ordersApi.fetchOrders).mockResolvedValue(
       makeOrdersPage({
