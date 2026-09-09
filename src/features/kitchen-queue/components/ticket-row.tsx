@@ -57,7 +57,7 @@ export function TicketRow({ order }: { order: KitchenOrder }) {
         }
       }}
     >
-      <TableCell className="font-medium">{order.order_number}</TableCell>
+      <TableCell className="font-mono font-medium">{order.order_number}</TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
           <Badge variant={badge.variant} className="gap-1">

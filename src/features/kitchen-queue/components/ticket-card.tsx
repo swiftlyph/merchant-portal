@@ -1,5 +1,4 @@
 import { IconAlertTriangle, IconClock, IconDots } from "@tabler/icons-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +24,31 @@ const STALENESS_BADGE: Record<
 };
 
 /**
- * A ticket sized for arm's-length reading. Triple-click completes it
+ * A row of punched holes along one edge — the perforation a ticket tears
+ * along — drawn as repeating circles rather than an image asset. Sits
+ * against the page background (not the card's own), so it reads regardless
+ * of theme.
+ */
+function Perforation({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "flex justify-center gap-2.5 bg-background py-1.5",
+        className,
+      )}
+    >
+      {Array.from({ length: 14 }).map((_, i) => (
+        <span key={i} className="size-1 rounded-full bg-border" />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A ticket sized for arm's-length reading, styled after a printed kitchen
+ * chit: a colored header stripe by staleness, monospace numerals, a
+ * perforated tear line, dashed item rules. Triple-click completes it
  * (progress shown as 1/3 -> 2/3 so the gesture teaches itself); the
  * dropdown's "Complete order" item is the keyboard/screen-reader path —
  * the gesture is never the ONLY way to finish a ticket. No confirm dialog
@@ -41,10 +64,15 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
   const { progress, requiredClicks, register, reset } = useTripleClick(complete);
 
   return (
-    <Card
+    <div
       data-slot="ticket-card"
       className={cn(
-        "cursor-pointer touch-none select-none transition-opacity",
+        "relative flex flex-col overflow-hidden rounded-2xl bg-card font-mono shadow-md ring-1 ring-foreground/5 transition-opacity dark:ring-foreground/10",
+        "cursor-pointer touch-none select-none",
+        "before:absolute before:inset-x-0 before:top-0 before:h-1.5",
+        level === "normal" && "before:bg-muted-foreground/30",
+        level === "warning" && "before:bg-secondary-foreground/40",
+        level === "urgent" && "before:bg-destructive",
         isPending && "pointer-events-none opacity-50",
         level === "urgent" && "ring-2 ring-destructive/60",
       )}
@@ -64,54 +92,70 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
         }
       }}
     >
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <div className="text-2xl font-bold">{order.order_number}</div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`More actions for order ${order.order_number}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <IconDots />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem disabled={isPending} onSelect={() => complete()}>
-                Complete order
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div className="flex items-start justify-between gap-2 px-5 pt-5 pb-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs tracking-widest text-muted-foreground uppercase">Order</span>
+          <span className="text-2xl font-bold tracking-tight">{order.order_number}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={badge.variant} className="gap-1">
-            {level === "urgent" ? <IconAlertTriangle className="size-3" /> : <IconClock className="size-3" />}
-            {badge.label}
-          </Badge>
-          <span className="text-lg font-medium tabular-nums text-muted-foreground">
-            {formatWaitingTime(waitingSeconds)}
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <ul className="flex flex-col gap-2">
-          {order.items.map((item) => (
-            <li key={item.id} className="text-base">
-              <span className="font-medium">{item.quantity}× </span>
-              {item.product_name}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="font-sans"
+              aria-label={`More actions for order ${order.order_number}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <IconDots />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="font-sans"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DropdownMenuItem disabled={isPending} onSelect={() => complete()}>
+              Complete order
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="flex items-center gap-2 px-5 pb-4 font-sans">
+        <Badge variant={badge.variant} className="gap-1">
+          {level === "urgent" ? <IconAlertTriangle className="size-3" /> : <IconClock className="size-3" />}
+          {badge.label}
+        </Badge>
+        <span className="text-lg font-medium tabular-nums text-muted-foreground">
+          {formatWaitingTime(waitingSeconds)}
+        </span>
+      </div>
+
+      <Perforation />
+
+      <div className="flex flex-1 flex-col gap-3 bg-card px-5 py-4">
+        <ul className="flex flex-col gap-3">
+          {order.items.map((item, index) => (
+            <li key={item.id}>
+              {index > 0 && <div className="mb-3 border-t border-dashed border-border" />}
+              <div className="flex items-baseline gap-2 text-base">
+                <span className="font-bold tabular-nums">{item.quantity}×</span>
+                <span className="font-sans">{item.product_name}</span>
+              </div>
               {item.add_ons.length > 0 && (
-                <div className="pl-5 text-sm text-muted-foreground">
-                  {item.add_ons.join(", ")}
+                <div className="mt-1 pl-6 text-sm text-muted-foreground">
+                  {item.add_ons.map((addOn) => (
+                    <div key={addOn}>+ {addOn}</div>
+                  ))}
                 </div>
               )}
             </li>
           ))}
         </ul>
+
         {progress > 0 && (
           <div
-            className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground"
+            className="mt-1 flex items-center gap-1.5 border-t border-dashed border-border pt-3 font-sans text-sm text-muted-foreground"
             aria-live="polite"
           >
             <span>
@@ -120,7 +164,7 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
             </span>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
