@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { selectIsMerchantActive, useAuthStore } from "../store";
 import { useLogout } from "../useLogout";
 
@@ -23,17 +24,12 @@ export function SuspendedPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-base-100 p-4 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background p-4 text-center">
       <h1 className="text-2xl font-bold">{user?.merchant?.name ?? "Your merchant"}</h1>
-      <p className="text-base-content/70">Your account is currently inactive.</p>
-      <button
-        type="button"
-        className="btn btn-primary mt-2"
-        onClick={() => logout.mutate()}
-        disabled={logout.isPending}
-      >
+      <p className="text-muted-foreground">Your account is currently inactive.</p>
+      <Button type="button" className="mt-2" onClick={() => logout.mutate()} disabled={logout.isPending}>
         Log out
-      </button>
+      </Button>
     </div>
   );
 }

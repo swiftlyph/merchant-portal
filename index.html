@@ -15,9 +15,9 @@
               : window.matchMedia("(prefers-color-scheme: dark)").matches
                 ? "gasadark"
                 : "gasa";
-          document.documentElement.setAttribute("data-theme", theme);
+          document.documentElement.classList.toggle("dark", theme === "gasadark");
         } catch (e) {
-          document.documentElement.setAttribute("data-theme", "gasa");
+          // Leave the light (no .dark class) default in place.
         }
       })();
     </script>

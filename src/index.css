@@ -1,83 +1,12 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@plugin "daisyui" {
-  themes: gasa --default, gasadark --prefersdark;
-}
+@custom-variant dark (&:is(.dark *));
 
-/* Light theme — the merchant portal's default. */
-@plugin "daisyui/theme" {
-  name: "gasa";
-  default: true;
-  prefersdark: false;
-  color-scheme: light;
-
-  --color-base-100: oklch(100% 0 0);
-  --color-base-200: oklch(97% 0.005 260);
-  --color-base-300: oklch(93% 0.008 260);
-  --color-base-content: oklch(22% 0.02 260);
-
-  --color-primary: oklch(52% 0.19 264);
-  --color-primary-content: oklch(98% 0.01 264);
-
-  --color-secondary: oklch(62% 0.14 300);
-  --color-secondary-content: oklch(98% 0.01 300);
-
-  --color-accent: oklch(72% 0.17 200);
-  --color-accent-content: oklch(20% 0.02 200);
-
-  --color-neutral: oklch(30% 0.02 260);
-  --color-neutral-content: oklch(96% 0.01 260);
-
-  --color-info: oklch(70% 0.15 220);
-  --color-info-content: oklch(20% 0.02 220);
-  --color-success: oklch(70% 0.16 150);
-  --color-success-content: oklch(20% 0.02 150);
-  --color-warning: oklch(80% 0.17 80);
-  --color-warning-content: oklch(20% 0.02 80);
-  --color-error: oklch(63% 0.22 25);
-  --color-error-content: oklch(97% 0.01 25);
-
-  --radius-selector: 0.5rem;
-  --radius-field: 0.5rem;
-  --radius-box: 1rem;
-}
-
-/* Dark theme — follows prefers-color-scheme by default, or explicit toggle. */
-@plugin "daisyui/theme" {
-  name: "gasadark";
-  default: false;
-  prefersdark: true;
-  color-scheme: dark;
-
-  --color-base-100: oklch(22% 0.015 260);
-  --color-base-200: oklch(18% 0.015 260);
-  --color-base-300: oklch(14% 0.015 260);
-  --color-base-content: oklch(93% 0.01 260);
-
-  --color-primary: oklch(70% 0.18 264);
-  --color-primary-content: oklch(15% 0.02 264);
-
-  --color-secondary: oklch(72% 0.14 300);
-  --color-secondary-content: oklch(15% 0.02 300);
-
-  --color-accent: oklch(75% 0.16 200);
-  --color-accent-content: oklch(15% 0.02 200);
-
-  --color-neutral: oklch(90% 0.01 260);
-  --color-neutral-content: oklch(18% 0.02 260);
-
-  --color-info: oklch(75% 0.14 220);
-  --color-info-content: oklch(15% 0.02 220);
-  --color-success: oklch(75% 0.15 150);
-  --color-success-content: oklch(15% 0.02 150);
-  --color-warning: oklch(83% 0.16 80);
-  --color-warning-content: oklch(15% 0.02 80);
-  --color-error: oklch(68% 0.21 25);
-  --color-error-content: oklch(97% 0.01 25);
-
-  --radius-selector: 0.5rem;
-  --radius-field: 0.5rem;
-  --radius-box: 1rem;
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /*
@@ -92,4 +21,166 @@
     var(--color-secondary) 60%,
     var(--color-accent) 100%
   );
+}
+
+@theme inline {
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.6);
+  --radius-2xl: calc(var(--radius) * 2);
+}
+
+/*
+  Brand tokens, carried over 1:1 from the former daisyUI gasa/gasadark
+  themes (same OKLCH values) onto shadcn's CSS variable names. Light theme
+  is the default (:root); dark is the .dark class, toggled by
+  src/lib/theme.ts's applyTheme() — same "gasa"/"gasadark" theme names and
+  localStorage key as before, no-flash boot script in index.html unchanged.
+*/
+:root {
+  --background: oklch(97% 0.005 260);
+  --foreground: oklch(22% 0.02 260);
+  --card: oklch(100% 0 0);
+  --card-foreground: oklch(22% 0.02 260);
+  --popover: oklch(100% 0 0);
+  --popover-foreground: oklch(22% 0.02 260);
+
+  --primary: oklch(52% 0.19 264);
+  --primary-foreground: oklch(98% 0.01 264);
+
+  --secondary: oklch(62% 0.14 300);
+  --secondary-foreground: oklch(98% 0.01 300);
+
+  --accent: oklch(72% 0.17 200);
+  --accent-foreground: oklch(20% 0.02 200);
+
+  --muted: oklch(93% 0.008 260);
+  --muted-foreground: oklch(22% 0.02 260 / 65%);
+
+  --info: oklch(70% 0.15 220);
+  --info-foreground: oklch(20% 0.02 220);
+  --success: oklch(70% 0.16 150);
+  --success-foreground: oklch(20% 0.02 150);
+  --warning: oklch(80% 0.17 80);
+  --warning-foreground: oklch(20% 0.02 80);
+  --destructive: oklch(63% 0.22 25);
+  --destructive-foreground: oklch(97% 0.01 25);
+
+  --border: oklch(93% 0.008 260);
+  --input: oklch(93% 0.008 260);
+  --ring: oklch(52% 0.19 264 / 50%);
+
+  --chart-1: var(--primary);
+  --chart-2: var(--secondary);
+  --chart-3: var(--accent);
+  --chart-4: var(--success);
+  --chart-5: var(--warning);
+
+  --radius: 1rem;
+
+  --sidebar: oklch(100% 0 0);
+  --sidebar-foreground: oklch(22% 0.02 260);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(93% 0.008 260);
+  --sidebar-accent-foreground: oklch(22% 0.02 260);
+  --sidebar-border: oklch(93% 0.008 260);
+  --sidebar-ring: var(--ring);
+}
+
+.dark {
+  --background: oklch(18% 0.015 260);
+  --foreground: oklch(93% 0.01 260);
+  --card: oklch(22% 0.015 260);
+  --card-foreground: oklch(93% 0.01 260);
+  --popover: oklch(22% 0.015 260);
+  --popover-foreground: oklch(93% 0.01 260);
+
+  --primary: oklch(70% 0.18 264);
+  --primary-foreground: oklch(15% 0.02 264);
+
+  --secondary: oklch(72% 0.14 300);
+  --secondary-foreground: oklch(15% 0.02 300);
+
+  --accent: oklch(75% 0.16 200);
+  --accent-foreground: oklch(15% 0.02 200);
+
+  --muted: oklch(14% 0.015 260);
+  --muted-foreground: oklch(93% 0.01 260 / 65%);
+
+  --info: oklch(75% 0.14 220);
+  --info-foreground: oklch(15% 0.02 220);
+  --success: oklch(75% 0.15 150);
+  --success-foreground: oklch(15% 0.02 150);
+  --warning: oklch(83% 0.16 80);
+  --warning-foreground: oklch(15% 0.02 80);
+  --destructive: oklch(68% 0.21 25);
+  --destructive-foreground: oklch(97% 0.01 25);
+
+  --border: oklch(14% 0.015 260);
+  --input: oklch(14% 0.015 260);
+  --ring: oklch(70% 0.18 264 / 50%);
+
+  --chart-1: var(--primary);
+  --chart-2: var(--secondary);
+  --chart-3: var(--accent);
+  --chart-4: var(--success);
+  --chart-5: var(--warning);
+
+  --sidebar: oklch(22% 0.015 260);
+  --sidebar-foreground: oklch(93% 0.01 260);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(14% 0.015 260);
+  --sidebar-accent-foreground: oklch(93% 0.01 260);
+  --sidebar-border: oklch(14% 0.015 260);
+  --sidebar-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
