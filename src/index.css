@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: gasa --default, gasadark --prefersdark;
+}
+
+/* Light theme — the merchant portal's default. */
+@plugin "daisyui/theme" {
+  name: "gasa";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(97% 0.005 260);
+  --color-base-300: oklch(93% 0.008 260);
+  --color-base-content: oklch(22% 0.02 260);
+
+  --color-primary: oklch(52% 0.19 264);
+  --color-primary-content: oklch(98% 0.01 264);
+
+  --color-secondary: oklch(62% 0.14 300);
+  --color-secondary-content: oklch(98% 0.01 300);
+
+  --color-accent: oklch(72% 0.17 200);
+  --color-accent-content: oklch(20% 0.02 200);
+
+  --color-neutral: oklch(30% 0.02 260);
+  --color-neutral-content: oklch(96% 0.01 260);
+
+  --color-info: oklch(70% 0.15 220);
+  --color-info-content: oklch(20% 0.02 220);
+  --color-success: oklch(70% 0.16 150);
+  --color-success-content: oklch(20% 0.02 150);
+  --color-warning: oklch(80% 0.17 80);
+  --color-warning-content: oklch(20% 0.02 80);
+  --color-error: oklch(63% 0.22 25);
+  --color-error-content: oklch(97% 0.01 25);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+}
+
+/* Dark theme — follows prefers-color-scheme by default, or explicit toggle. */
+@plugin "daisyui/theme" {
+  name: "gasadark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: oklch(22% 0.015 260);
+  --color-base-200: oklch(18% 0.015 260);
+  --color-base-300: oklch(14% 0.015 260);
+  --color-base-content: oklch(93% 0.01 260);
+
+  --color-primary: oklch(70% 0.18 264);
+  --color-primary-content: oklch(15% 0.02 264);
+
+  --color-secondary: oklch(72% 0.14 300);
+  --color-secondary-content: oklch(15% 0.02 300);
+
+  --color-accent: oklch(75% 0.16 200);
+  --color-accent-content: oklch(15% 0.02 200);
+
+  --color-neutral: oklch(90% 0.01 260);
+  --color-neutral-content: oklch(18% 0.02 260);
+
+  --color-info: oklch(75% 0.14 220);
+  --color-info-content: oklch(15% 0.02 220);
+  --color-success: oklch(75% 0.15 150);
+  --color-success-content: oklch(15% 0.02 150);
+  --color-warning: oklch(83% 0.16 80);
+  --color-warning-content: oklch(15% 0.02 80);
+  --color-error: oklch(68% 0.21 25);
+  --color-error-content: oklch(97% 0.01 25);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+}
+
+/*
+  Brand gradient — the only place raw color values are allowed, since it backs
+  the two approved glass accents (login card, dashboard stat cards). Never use
+  this class, or glass, behind body text or tabular data.
+*/
+@utility brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-secondary) 60%,
+    var(--color-accent) 100%
+  );
+}

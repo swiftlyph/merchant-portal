@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GASA Merchant Portal</title>
+    <script>
+      // Applied before first paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var stored = localStorage.getItem("gasa-theme");
+          var theme =
+            stored === "gasa" || stored === "gasadark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "gasadark"
+                : "gasa";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "gasa");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
