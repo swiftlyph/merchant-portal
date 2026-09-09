@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useCompleteTicket } from "../use-complete-ticket";
+import { useHiddenBelowCount } from "../use-overflow-affordance";
 import { useTickingSeconds } from "../use-ticking-seconds";
 import { useTripleClick } from "../use-triple-click";
 import { formatWaitingTime, staleness } from "../waiting-time";
@@ -110,6 +111,7 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
   const badge = STALENESS_BADGE[level];
 
   const { progress, requiredClicks, register, reset } = useTripleClick(complete);
+  const { containerRef, setItemRef, hiddenBelowCount } = useHiddenBelowCount(order.items.length);
 
   return (
     <div
@@ -187,25 +189,50 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
 
         <StubDivider />
 
-        <div className="scrollbar-thin flex flex-1 flex-col gap-3 overflow-y-auto bg-card px-5 pt-4 pb-4">
-          <ul className="flex flex-col gap-3">
-            {order.items.map((item, index) => (
-              <li key={item.id}>
-                {index > 0 && <div className="mb-3 border-t border-dashed border-border" />}
-                <div className="flex items-baseline gap-2 text-base">
-                  <span className="font-bold tabular-nums">{item.quantity}×</span>
-                  <span className="font-sans">{item.product_name}</span>
-                </div>
-                {item.add_ons.length > 0 && (
-                  <div className="mt-1 pl-6 text-sm text-muted-foreground">
-                    {item.add_ons.map((addOn) => (
-                      <div key={addOn}>+ {addOn}</div>
-                    ))}
+        <div className="relative min-h-0 flex-1">
+          <div
+            ref={containerRef}
+            className="scrollbar-thin flex h-full flex-col gap-3 overflow-y-auto bg-card px-5 pt-4 pb-4"
+          >
+            <ul className="flex flex-col gap-3">
+              {order.items.map((item, index) => (
+                <li key={item.id} ref={setItemRef(index)}>
+                  {index > 0 && <div className="mb-3 border-t border-dashed border-border" />}
+                  <div className="flex items-baseline gap-2 text-base">
+                    <span className="font-bold tabular-nums">{item.quantity}×</span>
+                    <span className="font-sans">{item.product_name}</span>
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
+                  {item.add_ons.length > 0 && (
+                    <div className="mt-1 pl-6 text-sm text-muted-foreground">
+                      {item.add_ons.map((addOn) => (
+                        <div key={addOn}>+ {addOn}</div>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* A barista scanning a wall tablet won't notice a thin
+              scrollbar alone — this fade + explicit count is the actual
+              "there's more below" signal, only shown when true. */}
+          {hiddenBelowCount > 0 && (
+            <>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 flex h-16 items-end justify-center bg-gradient-to-t from-card to-transparent pb-1.5"
+              >
+                <span className="rounded-full bg-foreground/80 px-2.5 py-0.5 font-sans text-xs font-semibold text-background shadow">
+                  +{hiddenBelowCount} more
+                </span>
+              </div>
+              <span className="sr-only">
+                {hiddenBelowCount} more item{hiddenBelowCount === 1 ? "" : "s"} below, scroll to see
+                {hiddenBelowCount === 1 ? "it" : "them"}.
+              </span>
+            </>
+          )}
         </div>
       </div>
     </div>

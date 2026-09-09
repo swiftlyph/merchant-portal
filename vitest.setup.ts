@@ -34,3 +34,20 @@ if (!Element.prototype.releasePointerCapture) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
+
+// jsdom doesn't implement IntersectionObserver — the kitchen ticket's
+// "N more below" affordance (useHiddenBelowCount) constructs one on mount.
+// A no-op stub is enough for tests that don't assert on the affordance
+// itself: it never fires, so hiddenBelowCount stays at its harmless
+// default of 0 rather than throwing and failing every test that renders
+// a TicketCard.
+if (!window.IntersectionObserver) {
+  window.IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  } as unknown as typeof IntersectionObserver;
+}
