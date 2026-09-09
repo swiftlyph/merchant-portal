@@ -55,11 +55,41 @@ Every non-2xx response from the backend has the shape:
 - `429` with `code: "too_many_attempts"` — login throttled.
 
 `src/lib/api/client.ts` normalizes all of this (including network failures)
-into a typed `ApiError { status, message, code, errors }`. Call
-`registerOnUnauthorized(cb)` once (wired up in the auth phase) to react to any
-401 globally, and `registerTokenGetter(fn)` to supply the bearer token.
+into a typed `ApiError { status, message, code, errors }`. `registerOnUnauthorized(cb)`
+is wired once, in `src/features/auth/session.ts`, to react to any 401 globally;
+`registerTokenGetter(fn)` is wired once, in `src/features/auth/store.ts`, to
+supply the bearer token. A per-request `suppressUnauthorized` option on
+`RequestOptions` opts a call out of that global handler for a 401 that's an
+expected, in-band outcome rather than an expired session — login and logout
+use it.
+
+## Auth
+
+All auth state lives in `src/features/auth/store.ts` (zustand): `status`
+(`"booting" | "guest" | "authed"`), `token`, and `user`. Only the token is
+persisted (`localStorage`, one namespaced key) — `user` is never persisted,
+since roles could go stale, and is always rehydrated from `GET /auth/me`.
+
+- **Boot** (`useAuthBoot.ts`): a stored token is confirmed against `/auth/me`
+  before the user is treated as authed. `app/providers.tsx` renders a
+  full-screen loader for the whole app while `status === "booting"`, so a
+  refresh on an authed session never flashes `/login`.
+- **Guard** (`RequireAuth.tsx`): wraps `/app`; redirects guests to `/login`
+  while preserving the attempted location for post-login redirect. `/login`
+  itself redirects to `/app` when already authed.
+- **Session expiry** (`session.ts`): any un-suppressed 401, anywhere, clears
+  the store, clears the TanStack Query cache, and redirects to `/login` with
+  a "session expired" notice — idempotently, so two 401s in flight at once
+  only trigger it once.
+- **Logout** (`useLogout.ts`): clears store/cache and redirects to `/login`
+  regardless of whether the `/auth/logout` call itself succeeds.
+
+A `merchant_inactive` 403 (suspended/inactive merchant) is left as an explicit
+TODO in `LoginPage.tsx`'s error mapping — it arrives with the backend tenancy
+phase, not yet.
 
 ## Status
 
-Phase F1 — project scaffold only. No auth logic, no token storage, no real
-data fetching yet. `/login` and `/app` are static placeholders.
+Phase F2 — auth flow wired against the real API: login, logout, boot
+rehydration, route guards, and session-expiry handling. No merchant data
+fetching yet — `/app` is still a placeholder shell.

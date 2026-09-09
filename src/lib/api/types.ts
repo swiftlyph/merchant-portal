@@ -1,3 +1,11 @@
+/** The flat user object returned by /auth/login and /auth/me. */
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+}
+
 /** Field name -> list of validation messages, as returned on 422 responses. */
 export type ApiFieldErrors = Record<string, string[]>;
 

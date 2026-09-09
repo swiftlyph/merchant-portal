@@ -22,6 +22,12 @@ export function registerOnUnauthorized(cb: UnauthorizedCallback): void {
 
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
+  /**
+   * Skip the registered onUnauthorized callback for this call even on a 401.
+   * For requests where a 401 is an expected, in-band outcome rather than an
+   * expired session — e.g. login rejecting bad credentials.
+   */
+  suppressUnauthorized?: boolean;
 }
 
 const FALLBACK_MESSAGE = "Something went wrong. Please try again.";
@@ -45,7 +51,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { body, headers, ...rest } = options;
+  const { body, headers, suppressUnauthorized, ...rest } = options;
 
   const finalHeaders = new Headers(headers);
   finalHeaders.set("Accept", "application/json");
@@ -71,7 +77,7 @@ export async function apiRequest<T>(
   if (!response.ok) {
     const { message, code, errors } = await parseErrorBody(response);
     const error = new ApiError({ status: response.status, message, code, errors });
-    if (response.status === 401) {
+    if (response.status === 401 && !suppressUnauthorized) {
       onUnauthorized?.();
     }
     throw error;
