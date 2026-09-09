@@ -24,31 +24,36 @@ const STALENESS_BADGE: Record<
 };
 
 /**
- * A row of punched holes along one edge — the perforation a ticket tears
- * along — drawn as repeating circles rather than an image asset. Sits
- * against the page background (not the card's own), so it reads regardless
- * of theme.
+ * A jagged, torn-paper edge along the BOTTOM of the header block, cut with
+ * `clip-path: polygon(...)` rather than drawn on top of anything — the
+ * header's own background ends in a zigzag silhouette, and the body block
+ * sitting directly beneath shows through the notches. That's what makes it
+ * read as torn paper rather than a printed zigzag pattern laid over a
+ * straight edge. The polygon is generated from a tooth count rather than
+ * hand-written, so it can't drift out of sync if that count changes.
  */
-function Perforation({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        "flex justify-center gap-2.5 bg-background py-1.5",
-        className,
-      )}
-    >
-      {Array.from({ length: 14 }).map((_, i) => (
-        <span key={i} className="size-1 rounded-full bg-border" />
-      ))}
-    </div>
-  );
+const TOOTH_COUNT = 16;
+const TOOTH_DEPTH_PX = 8;
+
+function sawtoothBottomClipPath(teeth: number): string {
+  const points: string[] = ["0% 0%", "100% 0%", "100% 100%"];
+  // Right to left along the bottom edge, alternating the full height and
+  // (height - depth) so the edge zigzags rather than running straight.
+  for (let i = teeth; i >= 0; i--) {
+    const x = (i / teeth) * 100;
+    const y = i % 2 === 0 ? "100%" : `calc(100% - ${TOOTH_DEPTH_PX}px)`;
+    points.push(`${x}% ${y}`);
+  }
+  points.push("0% 100%");
+  return `polygon(${points.join(", ")})`;
 }
+
+const SAWTOOTH_BOTTOM_CLIP_PATH = sawtoothBottomClipPath(TOOTH_COUNT);
 
 /**
  * A ticket sized for arm's-length reading, styled after a printed kitchen
- * chit: a colored header stripe by staleness, monospace numerals, a
- * perforated tear line, dashed item rules. Triple-click completes it
+ * chit: a staleness-colored header torn off along a sawtooth edge,
+ * monospace numerals, dashed item rules below. Triple-click completes it
  * (progress shown as 1/3 -> 2/3 so the gesture teaches itself); the
  * dropdown's "Complete order" item is the keyboard/screen-reader path —
  * the gesture is never the ONLY way to finish a ticket. No confirm dialog
@@ -69,10 +74,6 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
       className={cn(
         "relative flex flex-col overflow-hidden rounded-2xl bg-card font-mono shadow-md ring-1 ring-foreground/5 transition-opacity dark:ring-foreground/10",
         "cursor-pointer touch-none select-none",
-        "before:absolute before:inset-x-0 before:top-0 before:h-1.5",
-        level === "normal" && "before:bg-muted-foreground/30",
-        level === "warning" && "before:bg-secondary-foreground/40",
-        level === "urgent" && "before:bg-destructive",
         isPending && "pointer-events-none opacity-50",
         level === "urgent" && "ring-2 ring-destructive/60",
       )}
@@ -92,48 +93,56 @@ export function TicketCard({ order }: { order: KitchenOrder }) {
         }
       }}
     >
-      <div className="flex items-start justify-between gap-2 px-5 pt-5 pb-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs tracking-widest text-muted-foreground uppercase">Order</span>
-          <span className="text-2xl font-bold tracking-tight">{order.order_number}</span>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
+      <div
+        style={{ clipPath: SAWTOOTH_BOTTOM_CLIP_PATH, paddingBottom: TOOTH_DEPTH_PX }}
+        className={cn(
+          "flex flex-col",
+          level === "normal" && "bg-muted",
+          level === "warning" && "bg-secondary",
+          level === "urgent" && "bg-destructive/10",
+        )}
+      >
+        <div className="flex items-start justify-between gap-2 px-5 pt-5">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs tracking-widest text-muted-foreground uppercase">Order</span>
+            <span className="text-2xl font-bold tracking-tight">{order.order_number}</span>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="font-sans"
+                aria-label={`More actions for order ${order.order_number}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <IconDots />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
               className="font-sans"
-              aria-label={`More actions for order ${order.order_number}`}
               onClick={(e) => e.stopPropagation()}
             >
-              <IconDots />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="font-sans"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DropdownMenuItem disabled={isPending} onSelect={() => complete()}>
-              Complete order
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem disabled={isPending} onSelect={() => complete()}>
+                Complete order
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="flex items-center gap-2 px-5 pt-3 font-sans">
+          <Badge variant={badge.variant} className="gap-1">
+            {level === "urgent" ? <IconAlertTriangle className="size-3" /> : <IconClock className="size-3" />}
+            {badge.label}
+          </Badge>
+          <span className="text-lg font-medium tabular-nums text-muted-foreground">
+            {formatWaitingTime(waitingSeconds)}
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 px-5 pb-4 font-sans">
-        <Badge variant={badge.variant} className="gap-1">
-          {level === "urgent" ? <IconAlertTriangle className="size-3" /> : <IconClock className="size-3" />}
-          {badge.label}
-        </Badge>
-        <span className="text-lg font-medium tabular-nums text-muted-foreground">
-          {formatWaitingTime(waitingSeconds)}
-        </span>
-      </div>
-
-      <Perforation />
-
-      <div className="flex flex-1 flex-col gap-3 bg-card px-5 py-4">
+      <div className="flex flex-1 flex-col gap-3 bg-card px-5 pt-4 pb-4">
         <ul className="flex flex-col gap-3">
           {order.items.map((item, index) => (
             <li key={item.id}>
