@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/raleway";
 @import "@fontsource-variable/figtree";
 
 @custom-variant dark (&:is(.dark *));
@@ -65,7 +65,7 @@
   --radius-xl: calc(var(--radius) * 1.6);
   --radius-2xl: calc(var(--radius) * 2);
   --font-sans:
-    'Space Grotesk Variable', sans-serif;
+    'Raleway Variable', sans-serif;
   --font-heading:
     'Figtree Variable', sans-serif;
   --radius-3xl:
@@ -76,12 +76,11 @@
 
 /*
   Brand tokens from the shadcn preset (b1NZTLXBtQ) — warm orange primary,
-  Space Grotesk / Figtree fonts, 0.45rem radius. Replaces the earlier
-  blue/indigo palette carried over from the old daisyUI gasa/gasadark
-  themes. Light theme is the default (:root); dark is the .dark class,
-  toggled by src/lib/theme.ts's applyTheme() — same "gasa"/"gasadark"
-  theme names and localStorage key as before, no-flash boot script in
-  index.html unchanged.
+  Raleway / Figtree fonts, 0.45rem radius. Replaces the earlier blue/indigo
+  palette carried over from the old daisyUI gasa/gasadark themes. Light
+  theme is the default (:root); dark is the .dark class, toggled by
+  src/lib/theme.ts's applyTheme() — same "gasa"/"gasadark" theme names and
+  localStorage key as before, no-flash boot script in index.html unchanged.
 */
 :root {
   --background:
