@@ -84,9 +84,20 @@ export function TicketRow({ order }: { order: KitchenOrder }) {
       </TableCell>
       <TableCell>
         {progress > 0 && (
-          <span className="text-sm text-muted-foreground" aria-live="polite">
-            {progress}/{requiredClicks}
-          </span>
+          <>
+            <span
+              aria-hidden
+              className={cn(
+                "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-black tracking-wide text-white uppercase",
+                progress >= requiredClicks - 1 ? "bg-destructive" : "bg-primary",
+              )}
+            >
+              {progress}×
+            </span>
+            <span className="sr-only" aria-live="polite">
+              {progress} of {requiredClicks} clicks
+            </span>
+          </>
         )}
       </TableCell>
       <TableCell>
