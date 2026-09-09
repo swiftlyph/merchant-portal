@@ -22,6 +22,13 @@ npm run dev
 
 Other scripts: `npm run build`, `npm run preview`, `npm run lint`, `npm run test`, `npm run typecheck`.
 
+## CI
+
+`.github/workflows/ci.yml` runs on every PR into `main` and every push to
+`main`: lint, typecheck, and test run in parallel, then build runs after all
+three pass and uploads `dist/` as a workflow artifact. No CD yet — deploy
+target is still undecided.
+
 ### Offline dev: mock API
 
 `npm run mock-api` runs `scripts/mock-api.mjs`, a minimal Node server
