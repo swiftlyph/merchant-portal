@@ -3,6 +3,7 @@ import {
   CreditCardIcon,
   ClockIcon,
   ClipboardListIcon,
+  WalletIcon,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -43,6 +44,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       badge: kitchenSummary?.pending_count ? kitchenSummary.pending_count : undefined,
     },
     { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
+    { title: "Cash Drawer", url: "/app/cash-drawer", icon: <WalletIcon /> },
   ]
 
   return (
