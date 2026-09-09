@@ -104,12 +104,32 @@ since roles could go stale, and is always rehydrated from `GET /auth/me`.
   session-expiry (via the un-suppressed 401 path above) while the user is
   actively on the dashboard, not only at boot/refresh.
 
-A `merchant_inactive` 403 (suspended/inactive merchant) is left as an explicit
-TODO in `LoginPage.tsx`'s error mapping — it arrives with the backend tenancy
-phase, not yet.
+## Suspended merchants
+
+`AuthUser.merchant` is `{ id, name, status: "pending" | "active" | "suspended" } | null`,
+returned inside the same flat payload by both login and `/auth/me`. Login
+always succeeds for a suspended merchant — `merchant_inactive` is a routing
+concern, not a login error.
+
+- `selectIsMerchantActive` (`store.ts`) is the single source of truth both
+  routes below read, so they can never disagree about which side of
+  `/suspended` a user belongs on.
+- **`RequireActiveMerchant.tsx`** wraps `/app`: guest → `/login` (via
+  `RequireAuth`), authed-but-not-active → `/suspended`.
+- **`SuspendedPage.tsx`** (`/suspended`): a calm, solid-surface, no-shell page
+  showing the merchant's name and "Your account is currently inactive," with
+  a logout button. Self-guards the other two directions: guest → `/login`,
+  active merchant → `/app`.
+- **`merchantGuard.ts`** — defense in depth for a merchant suspended
+  mid-session: a 403 `merchant_inactive` from any `/merchant/*` request
+  refreshes `/auth/me` once and re-derives routing, landing on `/suspended`
+  without logging the user out. A lock (not a one-shot flag) collapses
+  concurrent 403s into a single refresh+redirect; it can't loop because
+  `/auth/me` is not itself a merchant route.
 
 ## Status
 
-Phase F2 — auth flow wired against the real API: login, logout, boot
-rehydration, route guards, and session-expiry handling. No merchant data
-fetching yet — `/app` is still a placeholder shell.
+Phase F2.1 — suspended-merchant handling: routing keyed off
+`selectIsMerchantActive`, a `/suspended` page, and the mid-session
+`merchant_inactive` defense-in-depth path. No merchant data fetching beyond
+`/auth/me` yet — `/app` is still a placeholder shell.

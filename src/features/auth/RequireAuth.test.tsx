@@ -44,7 +44,13 @@ describe("RequireAuth", () => {
     useAuthStore.setState({
       status: "authed",
       token: "tok",
-      user: { id: 1, name: "A", email: "a@a.com", roles: ["merchant"] },
+      user: {
+        id: 1,
+        name: "A",
+        email: "a@a.com",
+        roles: ["merchant"],
+        merchant: { id: 1, name: "A's Shop", status: "active" },
+      },
     });
 
     renderGuardedApp();

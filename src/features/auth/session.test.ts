@@ -10,7 +10,13 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
-const user = { id: 1, name: "Merchant One", email: "merchant@gasa.test", roles: ["merchant"] };
+const user = {
+  id: 1,
+  name: "Merchant One",
+  email: "merchant@gasa.test",
+  roles: ["merchant"],
+  merchant: { id: 1, name: "Merchant One", status: "active" as const },
+};
 
 describe("onUnauthorized session handling", () => {
   beforeEach(() => {

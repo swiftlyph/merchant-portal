@@ -26,7 +26,7 @@ function persistToken(token: string | null): void {
   }
 }
 
-interface AuthState {
+export interface AuthState {
   status: AuthStatus;
   /** Persisted. The only piece of auth state that survives a reload. */
   token: string | null;
@@ -35,6 +35,8 @@ interface AuthState {
   /** A one-shot message for the login page, e.g. after a forced logout. */
   sessionNotice: string | null;
   setAuthed: (token: string, user: AuthUser) => void;
+  /** Replaces the user without touching status/token — a mid-session refresh, not a login. */
+  setUser: (user: AuthUser) => void;
   /** Drops back to a signed-out state, clearing the persisted token. */
   clear: () => void;
   setSessionNotice: (notice: string | null) => void;
@@ -51,6 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     persistToken(token);
     set({ status: "authed", token, user, sessionNotice: null });
   },
+  setUser: (user) => set({ user }),
   clear: () => {
     persistToken(null);
     set({ status: "guest", token: null, user: null });
@@ -61,3 +64,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 // Wired once, at module load: the api client asks this store for the bearer
 // token on every request rather than reading storage directly.
 registerTokenGetter(() => useAuthStore.getState().token);
+
+/**
+ * The single source of truth for merchant-status routing: RequireActiveMerchant
+ * and SuspendedPage both read this, so they can never disagree about which
+ * side of /suspended a given user belongs on.
+ */
+export function selectIsMerchantActive(state: AuthState): boolean {
+  return state.user?.merchant?.status === "active";
+}

@@ -1,9 +1,19 @@
+export type MerchantStatus = "pending" | "active" | "suspended";
+
+/** The merchant a user owns, or null if they don't own one yet. */
+export interface Merchant {
+  id: number;
+  name: string;
+  status: MerchantStatus;
+}
+
 /** The flat user object returned by /auth/login and /auth/me. */
 export interface AuthUser {
   id: number;
   name: string;
   email: string;
   roles: string[];
+  merchant: Merchant | null;
 }
 
 /** Field name -> list of validation messages, as returned on 422 responses. */

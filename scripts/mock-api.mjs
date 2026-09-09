@@ -13,7 +13,8 @@
  * is worse than no mock — it makes `npm run dev` lie about what works.
  *
  * Covers only what's implemented so far: POST /auth/login, GET /auth/me,
- * POST /auth/logout. Extend it as later phases add endpoints.
+ * POST /auth/logout, and a generic /merchant/* stub for exercising the
+ * merchant_inactive path. Extend it as later phases add endpoints.
  *
  * Usage: npm run mock-api (listens on :8010, matching .env.example)
  */
@@ -25,12 +26,35 @@ const users = {
   "merchant@gasa.test": {
     password: "password",
     portal: "merchant",
-    user: { id: 1, name: "Merchant One", email: "merchant@gasa.test", roles: ["merchant"] },
+    user: {
+      id: 1,
+      name: "Merchant One",
+      email: "merchant@gasa.test",
+      roles: ["merchant"],
+      merchant: { id: 1, name: "Merchant One", status: "active" },
+    },
+  },
+  "suspended@gasa.test": {
+    password: "password",
+    portal: "merchant",
+    user: {
+      id: 3,
+      name: "Suspended Owner",
+      email: "suspended@gasa.test",
+      roles: ["merchant"],
+      merchant: { id: 2, name: "Suspended Merchant", status: "suspended" },
+    },
   },
   "company@gasa.test": {
     password: "password",
     portal: "company",
-    user: { id: 2, name: "Company User", email: "company@gasa.test", roles: ["company"] },
+    user: {
+      id: 2,
+      name: "Company User",
+      email: "company@gasa.test",
+      roles: ["company"],
+      merchant: null,
+    },
   },
 };
 
@@ -116,6 +140,21 @@ const server = createServer(async (req, res) => {
     return res.end();
   }
 
+  // Generic stub for any /merchant/* route: 403 merchant_inactive unless the
+  // caller's merchant is active. No real merchant endpoints exist yet — this
+  // exists so the mid-session defense-in-depth path (merchantGuard.ts) can
+  // be exercised by hand against something.
+  if (url.startsWith("/api/v1/merchant/")) {
+    const token = (req.headers.authorization ?? "").replace("Bearer ", "");
+    const email = tokens.get(token);
+    if (!email) return json(res, 401, { message: "Unauthenticated.", code: "unauthenticated" });
+    const { merchant } = users[email].user;
+    if (!merchant || merchant.status !== "active") {
+      return json(res, 403, { message: "Merchant inactive.", code: "merchant_inactive" });
+    }
+    return json(res, 200, { data: [] });
+  }
+
   // Dev-only escape hatch: revoke a token from the outside, to simulate a
   // server-side revocation while the SPA still holds it. Not part of the
   // real API — only for exercising the session-expiry path manually.
@@ -135,5 +174,9 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Mock API listening on http://localhost:${PORT} (Ctrl+C to stop)`);
-  console.log(`Seeded users: merchant@gasa.test / password (merchant), company@gasa.test / password (company)`);
+  console.log(
+    "Seeded users: merchant@gasa.test / password (active merchant), " +
+      "suspended@gasa.test / password (suspended merchant), " +
+      "company@gasa.test / password (wrong portal)",
+  );
 });

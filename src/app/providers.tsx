@@ -4,6 +4,7 @@ import { router } from "./router";
 import { useAuthStore } from "@/features/auth/store";
 import { useAuthBoot } from "@/features/auth/useAuthBoot";
 import { setQueryClientClear, setSessionNavigator } from "@/features/auth/session";
+import { setMerchantGuardNavigator } from "@/features/auth/merchantGuard";
 import { FullScreenLoader } from "@/components/ui/FullScreenLoader";
 
 const queryClient = new QueryClient({
@@ -19,6 +20,7 @@ const queryClient = new QueryClient({
 // of these but shouldn't otherwise depend on the router or query client.
 setQueryClientClear(() => queryClient.clear());
 setSessionNavigator((path) => router.navigate(path));
+setMerchantGuardNavigator((path) => router.navigate(path));
 
 /**
  * Gates the whole router behind the boot check: while status is "booting"

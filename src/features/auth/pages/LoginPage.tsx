@@ -17,8 +17,10 @@ interface LocationState {
 }
 
 /**
- * The one approved full-bleed glass surface: brand gradient behind a glass
- * card. No body text or tabular data ever sits on glass — see README.
+ * Split-screen layout: form on a solid surface (left), a plain brand-color
+ * panel (right) reserved for a future product screenshot/illustration. No
+ * glass/gradient here — those stay reserved for the dashboard stat cards
+ * per README; this page no longer uses either.
  */
 export function LoginPage() {
   const status = useAuthStore((s) => s.status);
@@ -69,8 +71,10 @@ export function LoginPage() {
         setFormAlert("This account can't access the merchant portal");
         return;
       }
-      // TODO: handle 403 "merchant_inactive" once the backend tenancy phase
-      // ships (suspended/inactive merchant). Not implemented yet.
+      // No case here for 403 "merchant_inactive": login succeeds for a
+      // suspended merchant (per the backend contract) — the redirect to
+      // /suspended is handled by routing (RequireActiveMerchant), not as a
+      // login error.
       setFormAlert(error.message);
     },
   });
@@ -96,83 +100,103 @@ export function LoginPage() {
   const submitDisabled = mutation.isPending || cooldown > 0;
 
   return (
-    <div className="brand-gradient flex min-h-screen items-center justify-center p-4">
-      <div className="absolute right-4 top-4">
+    <div className="flex min-h-screen bg-base-100">
+      <div className="absolute right-4 top-4 z-10">
         <ThemeToggle />
       </div>
-      <div className="glass w-full max-w-sm rounded-box p-8 shadow-xl">
-        <h1 className="mb-1 text-center text-2xl font-bold text-primary-content">
-          GASA Merchant Portal
-        </h1>
-        <p className="mb-6 text-center text-sm text-primary-content/80">
-          Sign in to manage your storefront
-        </p>
 
-        {sessionNotice && (
-          <div role="alert" className="alert alert-warning mb-4 text-sm">
-            <span>{sessionNotice}</span>
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
-              onClick={() => setSessionNotice(null)}
-              aria-label="Dismiss"
-            >
-              ✕
+      {/* Form side */}
+      <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-16 xl:px-24">
+        <div className="mx-auto w-full max-w-sm">
+          <h1 className="mb-1 text-2xl font-bold text-base-content">
+            <span className="text-secondary">GASA</span> Merchant Portal
+          </h1>
+          <p className="mb-6 text-sm text-base-content/70">Sign in to manage your storefront</p>
+
+          {sessionNotice && (
+            <div role="alert" className="alert alert-warning mb-4 text-sm">
+              <span>{sessionNotice}</span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={() => setSessionNotice(null)}
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {formAlert && (
+            <div role="alert" className="alert alert-error mb-4 text-sm">
+              <span>{formAlert}</span>
+            </div>
+          )}
+
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+            <label className="floating-label">
+              <span>Email</span>
+              <input
+                type="email"
+                name="email"
+                autoComplete="email"
+                placeholder="you@business.com"
+                className="input input-bordered w-full"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={fieldErrors.email ? true : undefined}
+              />
+              {fieldErrors.email?.map((message) => (
+                <p key={message} className="mt-1 text-sm text-error">
+                  {message}
+                </p>
+              ))}
+            </label>
+            <label className="floating-label">
+              <span>Password</span>
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="input input-bordered w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={fieldErrors.password ? true : undefined}
+              />
+              {fieldErrors.password?.map((message) => (
+                <p key={message} className="mt-1 text-sm text-error">
+                  {message}
+                </p>
+              ))}
+            </label>
+            <button type="submit" className="btn btn-primary mt-2" disabled={submitDisabled}>
+              {cooldown > 0
+                ? `Try again in ${cooldown}s`
+                : mutation.isPending
+                  ? "Signing in…"
+                  : "Sign in"}
             </button>
-          </div>
-        )}
+          </form>
+        </div>
+      </div>
 
-        {formAlert && (
-          <div role="alert" className="alert alert-error mb-4 text-sm">
-            <span>{formAlert}</span>
+      {/* Visual side — plain brand-color panel; drop a product screenshot/
+          illustration into the placeholder below when one is available. */}
+      <div className="relative hidden w-1/2 items-center justify-center bg-secondary p-12 lg:flex">
+        <div className="flex w-full max-w-md flex-col items-center gap-6 text-center text-secondary-content">
+          <div className="flex aspect-video w-full items-center justify-center rounded-box border-2 border-dashed border-secondary-content/30 bg-secondary-content/10">
+            <span className="text-sm text-secondary-content/70">
+              Product screenshot placeholder
+            </span>
           </div>
-        )}
-
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-          <label className="floating-label">
-            <span>Email</span>
-            <input
-              type="email"
-              name="email"
-              autoComplete="email"
-              placeholder="you@business.com"
-              className="input input-bordered w-full"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-invalid={fieldErrors.email ? true : undefined}
-            />
-            {fieldErrors.email?.map((message) => (
-              <p key={message} className="mt-1 text-sm text-error">
-                {message}
-              </p>
-            ))}
-          </label>
-          <label className="floating-label">
-            <span>Password</span>
-            <input
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              className="input input-bordered w-full"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-invalid={fieldErrors.password ? true : undefined}
-            />
-            {fieldErrors.password?.map((message) => (
-              <p key={message} className="mt-1 text-sm text-error">
-                {message}
-              </p>
-            ))}
-          </label>
-          <button type="submit" className="btn btn-primary mt-2" disabled={submitDisabled}>
-            {cooldown > 0
-              ? `Try again in ${cooldown}s`
-              : mutation.isPending
-                ? "Signing in…"
-                : "Sign in"}
-          </button>
-        </form>
+          <div>
+            <p className="text-lg font-semibold">Run your storefront from one place</p>
+            <p className="mt-1 text-sm text-secondary-content/80">
+              Orders, payouts, and inventory — all in the merchant portal.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

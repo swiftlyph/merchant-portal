@@ -20,6 +20,19 @@ export function registerOnUnauthorized(cb: UnauthorizedCallback): void {
   onUnauthorized = cb;
 }
 
+type MerchantInactiveCallback = () => void;
+
+let onMerchantInactive: MerchantInactiveCallback | null = null;
+
+/**
+ * Fires on a 403 "merchant_inactive" from any /merchant/* request — a
+ * merchant suspended mid-session, not an expired token. Wired to re-derive
+ * routing (see features/auth/merchantGuard.ts) without logging the user out.
+ */
+export function registerOnMerchantInactive(cb: MerchantInactiveCallback): void {
+  onMerchantInactive = cb;
+}
+
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   /**
@@ -79,6 +92,9 @@ export async function apiRequest<T>(
     const error = new ApiError({ status: response.status, message, code, errors });
     if (response.status === 401 && !suppressUnauthorized) {
       onUnauthorized?.();
+    }
+    if (response.status === 403 && code === "merchant_inactive") {
+      onMerchantInactive?.();
     }
     throw error;
   }
