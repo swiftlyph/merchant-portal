@@ -1,11 +1,19 @@
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuthStore } from "@/features/auth/store";
 import { useLogout } from "@/features/auth/useLogout";
+import { useMe } from "@/features/auth/useMe";
 
-/** Placeholder solid-surface shell for "/app" — auth is wired, data isn't yet. */
+/**
+ * Placeholder solid-surface shell for "/app". `useMe` is the one live,
+ * authenticated request this page makes — see its docstring for why that
+ * matters beyond just fetching the name.
+ */
 export function DashboardPage() {
-  const user = useAuthStore((s) => s.user);
+  const storeUser = useAuthStore((s) => s.user);
+  const { data: user } = useMe();
   const logout = useLogout();
+
+  const displayUser = user ?? storeUser;
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -26,7 +34,9 @@ export function DashboardPage() {
       <main className="flex flex-col items-center justify-center gap-2 p-16 text-center">
         <h1 className="text-2xl font-bold">GASA merchant — coming soon</h1>
         <p className="text-base-content/70">
-          {user ? `Signed in as ${user.name}.` : "The merchant dashboard will live here."}
+          {displayUser
+            ? `Signed in as ${displayUser.name}.`
+            : "The merchant dashboard will live here."}
         </p>
       </main>
     </div>

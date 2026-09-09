@@ -22,6 +22,21 @@ npm run dev
 
 Other scripts: `npm run build`, `npm run preview`, `npm run lint`, `npm run test`, `npm run typecheck`.
 
+### Offline dev: mock API
+
+`npm run mock-api` runs `scripts/mock-api.mjs`, a minimal Node server
+implementing the auth contract below (login/me/logout), for developing
+against when the real backend isn't running. It's generated from the "Auth"
+and "API error shape" sections of this README, **not** from the backend's
+source.
+
+**Sync rule:** any backend contract change (new field, changed status code,
+new error code) must update `scripts/mock-api.mjs` in the same change that
+starts relying on it in the frontend. A mock that quietly drifts from the
+real API is worse than no mock — it makes `npm run dev` lie about what
+works. If a contract change lands and nobody has time to update the mock
+immediately, delete the mock rather than leave it stale.
+
 ## Theme policy
 
 Two DaisyUI themes are defined in `src/index.css`: `gasa` (light, default) and
@@ -83,6 +98,11 @@ since roles could go stale, and is always rehydrated from `GET /auth/me`.
   only trigger it once.
 - **Logout** (`useLogout.ts`): clears store/cache and redirects to `/login`
   regardless of whether the `/auth/logout` call itself succeeds.
+- **Live protected query** (`useMe.ts`): `/app` calls `GET /auth/me` once via
+  TanStack Query (`staleTime: Infinity`, no polling). Beyond fetching the
+  name, this is what makes a server-side token revocation show up as a real
+  session-expiry (via the un-suppressed 401 path above) while the user is
+  actively on the dashboard, not only at boot/refresh.
 
 A `merchant_inactive` 403 (suspended/inactive merchant) is left as an explicit
 TODO in `LoginPage.tsx`'s error mapping — it arrives with the backend tenancy

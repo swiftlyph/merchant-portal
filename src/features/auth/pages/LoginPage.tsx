@@ -7,6 +7,9 @@ import type { ApiFieldErrors } from "@/lib/api/types";
 import { login } from "../api";
 import { useAuthStore } from "../store";
 
+// Mirrors the backend's login throttle window (429 "too_many_attempts" after
+// the 6th attempt within a rolling minute) — matched here, not invented, so
+// the UI doesn't invite a retry the server will just reject again.
 const RETRY_COOLDOWN_SECONDS = 60;
 
 interface LocationState {
