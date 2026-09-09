@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { SuspendedPage } from "./SuspendedPage";
+import { SuspendedPage } from "./suspended-page";
 import { useAuthStore } from "../store";
 
 const suspendedUser = {

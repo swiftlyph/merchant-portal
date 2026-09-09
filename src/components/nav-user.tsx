@@ -6,8 +6,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useAuthStore } from "@/features/auth/store"
-import { useMe } from "@/features/auth/useMe"
-import { useLogout } from "@/features/auth/useLogout"
+import { useMe } from "@/features/auth/use-me"
+import { useLogout } from "@/features/auth/use-logout"
 
 /**
  * Footer identity + logout — simplified from the stock sidebar-07 NavUser
