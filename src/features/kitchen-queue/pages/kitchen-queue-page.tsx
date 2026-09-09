@@ -1,4 +1,4 @@
-import { PlaceholderPage } from "@/components/ui/PlaceholderPage";
+import { PlaceholderPage } from "@/components/ui/placeholder-page";
 
 /** `/app/kitchen-queue`. */
 export function KitchenQueuePage() {

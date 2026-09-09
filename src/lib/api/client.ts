@@ -27,7 +27,7 @@ let onMerchantInactive: MerchantInactiveCallback | null = null;
 /**
  * Fires on a 403 "merchant_inactive" from any /merchant/* request — a
  * merchant suspended mid-session, not an expired token. Wired to re-derive
- * routing (see features/auth/merchantGuard.ts) without logging the user out.
+ * routing (see features/auth/merchant-guard.ts) without logging the user out.
  */
 export function registerOnMerchantInactive(cb: MerchantInactiveCallback): void {
   onMerchantInactive = cb;

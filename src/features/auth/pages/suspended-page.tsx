@@ -1,13 +1,13 @@
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { selectIsMerchantActive, useAuthStore } from "../store";
-import { useLogout } from "../useLogout";
+import { useLogout } from "../use-logout";
 
 /**
  * A calm, solid-surface full-page state — no shell, no glass. Self-guards
  * like LoginPage does for its own "already authed" case: a guest lands here
  * only via a stale link, and an active merchant only via the mid-session
- * refresh in merchantGuard.ts flipping them back, so both redirect away
+ * refresh in merchant-guard.ts flipping them back, so both redirect away
  * rather than showing a stale state.
  */
 export function SuspendedPage() {

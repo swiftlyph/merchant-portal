@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/lib/api/client";
 import { useAuthStore } from "./store";
-import { setMerchantGuardNavigator } from "./merchantGuard";
+import { setMerchantGuardNavigator } from "./merchant-guard";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {

@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { Navigate } from "react-router-dom";
-import { RequireAuth } from "./RequireAuth";
+import { RequireAuth } from "./require-auth";
 import { selectIsMerchantActive, useAuthStore } from "./store";
 
 /**

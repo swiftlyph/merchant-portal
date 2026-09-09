@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/features/auth/store";
-import { useMe } from "@/features/auth/useMe";
-import { PlaceholderPage } from "@/components/ui/PlaceholderPage";
+import { useMe } from "@/features/auth/use-me";
+import { PlaceholderPage } from "@/components/ui/placeholder-page";
 
 /**
  * `/app/dashboard`. `useMe` stays wired here as the one live, authenticated
