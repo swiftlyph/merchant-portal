@@ -12,12 +12,9 @@
  * consumes it in the frontend. A mock that quietly drifts from the real API
  * is worse than no mock — it makes `npm run dev` lie about what works.
  *
- * Covers: POST /auth/login, GET /auth/me, POST /auth/logout; GET
- * /merchant/orders (paginated, status/date filters), GET
- * /merchant/orders/:id, POST /merchant/orders/:id/complete, POST
- * /merchant/orders/:id/void — each merchant_inactive-checked and scoped to
- * the caller's own merchant; a generic /merchant/* stub covers anything
- * else, for exercising the merchant_inactive path.
+ * Covers only what's implemented so far: POST /auth/login, GET /auth/me,
+ * POST /auth/logout, and a generic /merchant/* stub for exercising the
+ * merchant_inactive path. Extend it as later phases add endpoints.
  *
  * Usage: npm run mock-api (listens on :8010, matching .env.example)
  */
@@ -59,134 +56,10 @@ const users = {
       merchant: null,
     },
   },
-  "merchant2@gasa.test": {
-    password: "password",
-    portal: "merchant",
-    user: {
-      id: 4,
-      name: "Merchant Two",
-      email: "merchant2@gasa.test",
-      roles: ["merchant"],
-      merchant: { id: 5, name: "Merchant Two", status: "active" },
-    },
-  },
 };
 
 const tokens = new Map(); // token -> email
 const attemptTimestamps = []; // login throttle: 6th attempt within a minute -> 429
-
-// --- Orders -----------------------------------------------------------
-// Seeded per-merchant so a merchant only ever sees its own orders. Money is
-// integer cents throughout, matching the real API.
-function makeOrder({ merchantId, id, status, paymentMethod, createdAt, items, discountCents = 0 }) {
-  const subtotalCents = items.reduce((sum, item) => sum + item.line_total_cents, 0);
-  const totalCents = subtotalCents - discountCents;
-  const split = paymentMethod === "split";
-  return {
-    id,
-    merchant_id: merchantId,
-    order_number: `ORD-${String(id).padStart(6, "0")}`,
-    status,
-    payment_method: paymentMethod,
-    subtotal_cents: subtotalCents,
-    discount_cents: discountCents,
-    total_cents: totalCents,
-    currency: "PHP",
-    cash_cents: split ? Math.round(totalCents / 2) : null,
-    gcash_cents: split ? totalCents - Math.round(totalCents / 2) : null,
-    created_by_user_id: merchantId === 1 ? 1 : 4,
-    completed_at: status === "completed" ? createdAt : null,
-    voided_at: status === "voided" ? createdAt : null,
-    created_at: createdAt,
-    items,
-  };
-}
-
-function withAddOns(name, unitPriceCents, quantity, addOns = []) {
-  const addOnTotal = addOns.reduce((sum, a) => sum + a.price_cents, 0);
-  return {
-    product_name: name,
-    unit_price_cents: unitPriceCents,
-    quantity,
-    line_total_cents: unitPriceCents * quantity + addOnTotal * quantity,
-    add_ons: addOns,
-  };
-}
-
-let orders = [
-  makeOrder({
-    merchantId: 1,
-    id: 1,
-    status: "pending",
-    paymentMethod: "cash",
-    createdAt: "2026-09-09T02:15:00.000Z",
-    items: [withAddOns("Iced Latte", 15000, 2, [{ name: "Oat milk", price_cents: 3000 }])],
-  }),
-  makeOrder({
-    merchantId: 1,
-    id: 2,
-    status: "pending",
-    paymentMethod: "gcash",
-    createdAt: "2026-09-09T01:50:00.000Z",
-    items: [withAddOns("Americano", 12000, 1)],
-  }),
-  makeOrder({
-    merchantId: 1,
-    id: 3,
-    status: "completed",
-    paymentMethod: "split",
-    createdAt: "2026-09-08T23:40:00.000Z",
-    items: [
-      withAddOns("Cappuccino", 14000, 1, [{ name: "Extra shot", price_cents: 2500 }]),
-      withAddOns("Croissant", 9000, 2),
-    ],
-    discountCents: 5000,
-  }),
-  makeOrder({
-    merchantId: 1,
-    id: 4,
-    status: "voided",
-    paymentMethod: "cash",
-    createdAt: "2026-09-08T20:05:00.000Z",
-    items: [withAddOns("Cold Brew", 16000, 1)],
-  }),
-  makeOrder({
-    merchantId: 5,
-    id: 5,
-    status: "pending",
-    paymentMethod: "cash",
-    createdAt: "2026-09-09T03:00:00.000Z",
-    items: [withAddOns("Matcha Latte", 17000, 1)],
-  }),
-];
-
-function ordersForMerchant(merchantId) {
-  return orders.filter((o) => o.merchant_id === merchantId);
-}
-
-function paginate(list, page, perPage = 10) {
-  const lastPage = Math.max(1, Math.ceil(list.length / perPage));
-  const currentPage = Math.min(Math.max(1, page), lastPage);
-  const start = (currentPage - 1) * perPage;
-  const pageItems = list.slice(start, start + perPage);
-  const base = "/api/v1/merchant/orders";
-  const pageUrl = (p) => (p ? `${base}?page=${p}` : null);
-  return {
-    data: pageItems,
-    links: {
-      first: pageUrl(1),
-      last: pageUrl(lastPage),
-      prev: currentPage > 1 ? pageUrl(currentPage - 1) : null,
-      next: currentPage < lastPage ? pageUrl(currentPage + 1) : null,
-    },
-    meta: {
-      current_page: currentPage,
-      last_page: lastPage,
-      per_page: perPage,
-      total: list.length,
-    },
-  };
-}
 
 function json(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -267,102 +140,18 @@ const server = createServer(async (req, res) => {
     return res.end();
   }
 
-  // Shared auth + merchant_inactive check for every /merchant/* route below.
-  // Returns the caller's merchant on success, or null after already writing
-  // an error response.
-  function authenticateMerchant() {
+  // Generic stub for any /merchant/* route: 403 merchant_inactive unless the
+  // caller's merchant is active. No real merchant endpoints exist yet — this
+  // exists so the mid-session defense-in-depth path (merchantGuard.ts) can
+  // be exercised by hand against something.
+  if (url.startsWith("/api/v1/merchant/")) {
     const token = (req.headers.authorization ?? "").replace("Bearer ", "");
     const email = tokens.get(token);
-    if (!email) {
-      json(res, 401, { message: "Unauthenticated.", code: "unauthenticated" });
-      return null;
-    }
+    if (!email) return json(res, 401, { message: "Unauthenticated.", code: "unauthenticated" });
     const { merchant } = users[email].user;
     if (!merchant || merchant.status !== "active") {
-      json(res, 403, { message: "Merchant inactive.", code: "merchant_inactive" });
-      return null;
+      return json(res, 403, { message: "Merchant inactive.", code: "merchant_inactive" });
     }
-    return merchant;
-  }
-
-  const [urlPath, urlQuery] = url.split("?");
-  const orderDetailMatch = urlPath.match(/^\/api\/v1\/merchant\/orders\/(\d+)(?:\/(complete|void))?$/);
-
-  if (urlPath === "/api/v1/merchant/orders" && req.method === "GET") {
-    const merchant = authenticateMerchant();
-    if (!merchant) return;
-
-    const params = new URLSearchParams(urlQuery ?? "");
-    let list = ordersForMerchant(merchant.id);
-    const status = params.get("status");
-    if (status) list = list.filter((o) => o.status === status);
-    const date = params.get("date");
-    if (date) list = list.filter((o) => o.created_at.slice(0, 10) === date);
-    list = [...list].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-
-    const page = Number(params.get("page") ?? "1") || 1;
-    return json(res, 200, paginate(list, page));
-  }
-
-  if (orderDetailMatch && req.method === "GET" && !orderDetailMatch[2]) {
-    const merchant = authenticateMerchant();
-    if (!merchant) return;
-
-    const id = Number(orderDetailMatch[1]);
-    const order = orders.find((o) => o.id === id && o.merchant_id === merchant.id);
-    if (!order) return json(res, 404, { message: "Order not found.", code: "not_found" });
-    return json(res, 200, order);
-  }
-
-  if (orderDetailMatch && req.method === "POST" && orderDetailMatch[2]) {
-    const merchant = authenticateMerchant();
-    if (!merchant) return;
-
-    const id = Number(orderDetailMatch[1]);
-    const action = orderDetailMatch[2]; // "complete" | "void"
-    const order = orders.find((o) => o.id === id && o.merchant_id === merchant.id);
-    if (!order) return json(res, 404, { message: "Order not found.", code: "not_found" });
-
-    if (order.status !== "pending") {
-      return json(res, 422, {
-        message: "This order has already been completed or voided.",
-        code: "invalid_transition",
-      });
-    }
-
-    const now = new Date().toISOString();
-    if (action === "complete") {
-      order.status = "completed";
-      order.completed_at = now;
-    } else {
-      order.status = "voided";
-      order.voided_at = now;
-    }
-    return json(res, 200, order);
-  }
-
-  // Dev-only escape hatch: reseed orders back to their initial state, for
-  // re-running the complete/void flows by hand without restarting the
-  // server. Not part of the real API.
-  if (url === "/__reset-orders" && req.method === "POST") {
-    orders = orders.map((o) => ({ ...o }));
-    for (const o of orders) {
-      if (o.id <= 2 || o.id === 5) {
-        o.status = "pending";
-        o.completed_at = null;
-        o.voided_at = null;
-      }
-    }
-    return json(res, 200, { ok: true });
-  }
-
-  // Generic stub for any other /merchant/* route: 403 merchant_inactive
-  // unless the caller's merchant is active, else an empty list. Exists so
-  // the mid-session defense-in-depth path (merchant-guard.ts) can still be
-  // exercised by hand against routes not implemented above.
-  if (url.startsWith("/api/v1/merchant/")) {
-    const merchant = authenticateMerchant();
-    if (!merchant) return;
     return json(res, 200, { data: [] });
   }
 
