@@ -39,7 +39,11 @@ export function ReconciliationPanel({
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
         <ReconciliationRow label="Opening float" value={r.opening_float_cents} />
-        <ReconciliationRow label="Cash sales" value={r.cash_sales_cents} />
+        <ReconciliationRow
+          label="Cash sales (gross)"
+          value={r.cash_sales_cents}
+          helperText="Includes voided sales, which are subtracted below. Reports show cash revenue with voids already removed."
+        />
         <ReconciliationRow label="Voided cash" value={-r.voided_cash_cents} />
         <ReconciliationRow label="Cash in" value={r.cash_in_cents} />
         <ReconciliationRow label="Cash out" value={-r.cash_out_cents} />
@@ -49,11 +53,21 @@ export function ReconciliationPanel({
   );
 }
 
-function ReconciliationRow({ label, value }: { label: string; value: number }) {
+function ReconciliationRow({
+  label,
+  value,
+  helperText,
+}: {
+  label: string;
+  value: number;
+  /** Short explanatory copy shown under the row — same explicit-text pattern as the GCash note above. */
+  helperText?: string;
+}) {
   return (
     <div className="flex flex-col">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="tabular-nums">{formatCents(value)}</dd>
+      {helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
     </div>
   );
 }
