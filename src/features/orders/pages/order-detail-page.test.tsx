@@ -151,6 +151,24 @@ describe("OrderDetailPage", () => {
     expect(await screen.findByText(/cannot be undone/i)).toBeInTheDocument();
   });
 
+  it("opens the void confirm dialog without a 'Function components cannot be given refs' warning", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(ordersApi.fetchOrder).mockResolvedValue(makeOrder({ status: "pending" }));
+
+    renderDetailPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Void" }));
+    await screen.findByRole("alertdialog");
+
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("Function components cannot be given refs"),
+      expect.anything(),
+      expect.anything(),
+    );
+    consoleError.mockRestore();
+  });
+
   it("voiding an order calls the endpoint and invalidates queries", async () => {
     vi.mocked(ordersApi.fetchOrder).mockResolvedValue(makeOrder({ status: "pending" }));
     vi.mocked(ordersApi.voidOrder).mockResolvedValue(makeOrder({ status: "voided" }));

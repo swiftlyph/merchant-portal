@@ -29,12 +29,17 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
-function DialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+// forwardRef: Radix's RemoveScroll (inside DialogOverlayImpl) renders this
+// component through its own Slot, which clones a ref onto it — a plain
+// function component can't accept that ref and React warns "Function
+// components cannot be given refs".
+const DialogOverlay = React.forwardRef<
+  React.ComponentRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentProps<typeof DialogPrimitive.Overlay>
+>(function DialogOverlay({ className, ...props }, ref) {
   return (
     <DialogPrimitive.Overlay
+      ref={ref}
       data-slot="dialog-overlay"
       className={cn(
         "fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
@@ -43,7 +48,7 @@ function DialogOverlay({
       {...props}
     />
   )
-}
+})
 
 function DialogContent({
   className,

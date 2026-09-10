@@ -6,7 +6,7 @@ import { useCompleteOrder, useVoidOrder } from "../use-order-transitions";
 import { OrderStatusBadge } from "../components/order-status-badge";
 import { PAYMENT_METHOD_LABEL, formatDateTime } from "../format";
 import { ApiError } from "@/lib/api/client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -112,8 +112,16 @@ export function OrderDetailPage() {
         {order.status === "pending" && (
           <div className="flex gap-2">
             <AlertDialog open={voidOpen} onOpenChange={setVoidOpen}>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">Void</Button>
+              {/*
+                Not `asChild` + <Button>: Radix's Trigger clones a ref onto
+                its single child, and Button is a plain function component
+                that can't accept one (the "Function components cannot be
+                given refs" warning). AlertDialogTrigger already renders a
+                real <button> itself, so it takes Button's own classes
+                instead of wrapping Button.
+              */}
+              <AlertDialogTrigger className={buttonVariants({ variant: "destructive" })}>
+                Void
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -140,9 +148,8 @@ export function OrderDetailPage() {
             </AlertDialog>
 
             <AlertDialog open={completeOpen} onOpenChange={setCompleteOpen}>
-              <AlertDialogTrigger asChild>
-                <Button>Complete</Button>
-              </AlertDialogTrigger>
+              {/* See the Void trigger above for why this isn't `asChild` + <Button>. */}
+              <AlertDialogTrigger className={buttonVariants()}>Complete</AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Complete this order?</AlertDialogTitle>
