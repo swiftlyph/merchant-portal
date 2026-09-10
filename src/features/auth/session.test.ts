@@ -16,6 +16,7 @@ const user = {
   email: "merchant@gasa.test",
   roles: ["merchant"],
   merchant: { id: 1, name: "Merchant One", status: "active" as const },
+  permissions: [],
 };
 
 describe("onUnauthorized session handling", () => {

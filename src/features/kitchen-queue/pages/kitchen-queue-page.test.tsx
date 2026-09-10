@@ -9,6 +9,8 @@ import * as kitchenApi from "../api";
 import * as ordersApi from "@/features/orders/api";
 import { ApiError } from "@/lib/api/client";
 import { makeKitchenOrder, makeKitchenQueueResponse, makeKitchenQueueSummary } from "../test-fixtures";
+import { useAuthStore } from "@/features/auth/store";
+import { OWNER_PRESET } from "@/features/auth/permissions";
 
 vi.mock("../api", () => ({
   fetchKitchenQueue: vi.fn(),
@@ -51,6 +53,22 @@ describe("KitchenQueuePage", () => {
     } catch {
       // ignore
     }
+    // This file exercises ticket completion itself, not permission gating
+    // (see a dedicated permissions test for that) — an owner fixture keeps
+    // the gesture live, same as before F10.
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Merchant One",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
     vi.mocked(kitchenApi.fetchKitchenQueueSummary).mockResolvedValue(
       makeKitchenQueueSummary({ pending_count: 2 }),
     );
@@ -287,5 +305,83 @@ describe("KitchenQueuePage", () => {
     expect(text).not.toMatch(/₱/);
     expect(text.toLowerCase()).not.toContain("total");
     expect(text.toLowerCase()).not.toContain("price");
+  });
+});
+
+describe("KitchenQueuePage permission gating", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    try {
+      localStorage.clear();
+    } catch {
+      // ignore
+    }
+    vi.mocked(kitchenApi.fetchKitchenQueueSummary).mockResolvedValue(
+      makeKitchenQueueSummary({ pending_count: 1 }),
+    );
+    vi.mocked(kitchenApi.fetchKitchenQueue).mockResolvedValue(
+      makeKitchenQueueResponse({ data: [makeKitchenOrder({ id: 1, order_number: "ORD-000001" })] }),
+    );
+  });
+
+  it("without orders.complete: the ticket still shows, but the triple-click gesture stays inert and explains why", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 4,
+        name: "Viewer",
+        email: "viewer@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: ["queue.view"],
+      },
+      sessionNotice: null,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    const ticket = await screen.findByRole("button", { name: /^Order ORD-000001,/ });
+    expect(ticket).toBeInTheDocument();
+
+    await user.click(ticket);
+    await user.click(ticket);
+    await user.click(ticket);
+
+    expect(ordersApi.completeOrder).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Completing orders requires staff access."),
+    );
+    // The ticket is still there — inert, not removed.
+    expect(screen.getByRole("button", { name: /^Order ORD-000001,/ })).toBeInTheDocument();
+  });
+
+  it("without orders.complete: the dropdown's Complete order item explains too, rather than completing", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 4,
+        name: "Viewer",
+        email: "viewer@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: ["queue.view"],
+      },
+      sessionNotice: null,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByText("ORD-000001");
+    await user.click(screen.getByRole("button", { name: /More actions for order ORD-000001/ }));
+    await user.click(await screen.findByText("Complete order"));
+
+    expect(ordersApi.completeOrder).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Completing orders requires staff access."),
+    );
   });
 });

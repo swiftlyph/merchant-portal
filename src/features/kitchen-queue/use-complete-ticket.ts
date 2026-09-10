@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useCompleteOrder } from "@/features/orders/use-order-transitions";
 import { ApiError } from "@/lib/api/client";
+import { describePermissionDenied, isPermissionDenied } from "@/features/auth/permission-error";
 
 /**
  * Completing a kitchen ticket REUSES the orders feature's existing
@@ -40,6 +41,8 @@ export function useCompleteTicket(id: number | string) {
       onError: (error) => {
         if (error instanceof ApiError && error.code === "invalid_transition") {
           invalidateKitchenQueries();
+        } else if (isPermissionDenied(error)) {
+          toast.error(describePermissionDenied(error, "Couldn't complete this order."));
         } else {
           toast.error(error instanceof Error ? error.message : "Couldn't complete this order.");
         }

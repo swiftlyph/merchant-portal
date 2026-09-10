@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CashDrawerPage } from "./cash-drawer-page";
 import * as cashSessionsApi from "../api";
 import { ApiError } from "@/lib/api/client";
+import { useAuthStore } from "@/features/auth/store";
+import { OWNER_PRESET } from "@/features/auth/permissions";
 import {
   makeMovement,
   makeRegister,
@@ -49,6 +51,22 @@ function renderCashDrawerPage() {
 describe("CashDrawerPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // This file exercises the cash-drawer flows themselves, not permission
+    // gating (see errors.test.ts / a dedicated permissions test for that) —
+    // an owner fixture keeps every action visible, same as before F10.
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Merchant One",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
     vi.mocked(cashSessionsApi.fetchRegisters).mockResolvedValue(makeRegistersResponse());
     vi.mocked(cashSessionsApi.fetchSessionHistory).mockResolvedValue(
       makeSessionsPage({ data: [] }),
@@ -497,5 +515,71 @@ describe("CashDrawerPage", () => {
 
       expect(await screen.findByText("Session detail page")).toBeInTheDocument();
     });
+  });
+});
+
+describe("CashDrawerPage permission gating", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(cashSessionsApi.fetchRegisters).mockResolvedValue(makeRegistersResponse());
+    vi.mocked(cashSessionsApi.fetchSessionHistory).mockResolvedValue(
+      makeSessionsPage({ data: [] }),
+    );
+  });
+
+  function setUser(permissions: string[]) {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 2,
+        name: "Staffer",
+        email: "staff@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions,
+      },
+      sessionNotice: null,
+    });
+  }
+
+  it("staff preset: no open-drawer panel without drawer.open, with a plain explanation instead", async () => {
+    setUser([]);
+    vi.mocked(cashSessionsApi.fetchCurrentSession).mockResolvedValue({ data: null });
+
+    renderCashDrawerPage();
+
+    expect(await screen.findByText("The cash drawer is closed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open cash drawer" })).not.toBeInTheDocument();
+    expect(screen.getByText(/opening it requires staff access/i)).toBeInTheDocument();
+  });
+
+  it("staff preset: shows Record cash in/out but hides Close and Confirm", async () => {
+    setUser([...OWNER_PRESET].filter((p) => p !== "drawer.close" && p !== "remittances.confirm"));
+    vi.mocked(cashSessionsApi.fetchCurrentSession).mockResolvedValue({
+      data: makeSession({ remittances: [makeRemittance({ status: "pending" })] }),
+    });
+
+    renderCashDrawerPage();
+
+    await screen.findByText("Movements");
+    expect(screen.getByRole("button", { name: "Record cash in" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Record cash out" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Record remittance" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close cash drawer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+  });
+
+  it("owner: shows every action, including Close and Confirm", async () => {
+    setUser([...OWNER_PRESET]);
+    vi.mocked(cashSessionsApi.fetchCurrentSession).mockResolvedValue({
+      data: makeSession({ remittances: [makeRemittance({ status: "pending" })] }),
+    });
+
+    renderCashDrawerPage();
+
+    await screen.findByText("Movements");
+    expect(screen.getByRole("button", { name: "Close cash drawer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
   });
 });

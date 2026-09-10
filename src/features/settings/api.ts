@@ -43,7 +43,7 @@ function normalizeTeamMember(raw: Partial<TeamMember> | null | undefined): TeamM
     id: raw?.id ?? 0,
     name: raw?.name ?? "",
     email: raw?.email ?? "",
-    role_in_merchant: raw?.role_in_merchant ?? "cashier",
+    role_in_merchant: raw?.role_in_merchant ?? "staff",
     is_owner: raw?.is_owner ?? false,
     created_at: raw?.created_at ?? null,
   };

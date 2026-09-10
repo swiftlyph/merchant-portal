@@ -8,6 +8,7 @@ import * as settingsApi from "../api";
 import { useAuthStore } from "@/features/auth/store";
 import { ApiError } from "@/lib/api/client";
 import { makeAddTeamMemberResponse, makeTeamMember, makeTeamMembersResponse } from "../test-fixtures";
+import { OWNER_PRESET } from "@/features/auth/permissions";
 
 vi.mock("../api", () => ({
   fetchProfile: vi.fn(),
@@ -35,7 +36,14 @@ describe("TeamPage", () => {
     useAuthStore.setState({
       status: "authed",
       token: "t",
-      user: { id: 1, name: "Merchant One", email: "merchant@gasa.test", roles: [], merchant: { id: 1, name: "Merchant One", status: "active" } },
+      user: {
+        id: 1,
+        name: "Merchant One",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
       sessionNotice: null,
     });
   });
@@ -190,5 +198,64 @@ describe("TeamPage", () => {
     const message = await screen.findByText("This email address is unavailable.");
     expect(message).toBeInTheDocument();
     expect(screen.queryByText(/another merchant/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("TeamPage permission gating", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("without team.manage: no Add button, no role select, no Remove — role shows as plain text", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 2,
+        name: "Staffer",
+        email: "staff@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: ["team.view"],
+      },
+      sessionNotice: null,
+    });
+    vi.mocked(settingsApi.fetchTeam).mockResolvedValue(makeTeamMembersResponse());
+
+    renderTeamPage();
+    await screen.findByText("jamie@merchantone.test");
+
+    expect(screen.queryByRole("button", { name: "Add team member" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Role for Jamie Cruz")).not.toBeInTheDocument();
+    expect(screen.getByText("Staff")).toBeInTheDocument();
+
+    const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
+    expect(within(memberRow).queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+  });
+
+  it("with team.manage: Add, role select, and Remove are all present", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Owner",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
+    vi.mocked(settingsApi.fetchTeam).mockResolvedValue(makeTeamMembersResponse());
+
+    renderTeamPage();
+    await screen.findByText("jamie@merchantone.test");
+
+    expect(screen.getByRole("button", { name: "Add team member" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Role for Jamie Cruz")).toBeInTheDocument();
+
+    const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
+    expect(within(memberRow).getByRole("button", { name: "Remove" })).toBeInTheDocument();
   });
 });

@@ -29,6 +29,7 @@ const activeUser = {
   email: "a@a.com",
   roles: ["merchant"],
   merchant: { id: 1, name: "A's Shop", status: "active" as const },
+  permissions: [],
 };
 
 describe("RequireActiveMerchant", () => {

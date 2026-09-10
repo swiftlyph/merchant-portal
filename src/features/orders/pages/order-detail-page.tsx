@@ -6,7 +6,9 @@ import { useCompleteOrder, useVoidOrder } from "../use-order-transitions";
 import { OrderStatusBadge } from "../components/order-status-badge";
 import { PAYMENT_METHOD_LABEL, formatDateTime } from "../format";
 import { ApiError } from "@/lib/api/client";
-import { Button } from "@/components/ui/button";
+import { useCan } from "@/features/auth/store";
+import { describePermissionDenied, isPermissionDenied } from "@/features/auth/permission-error";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -38,6 +40,8 @@ export function OrderDetailPage() {
   const voidMutation = useVoidOrder(orderId);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
+  const canComplete = useCan("orders.complete");
+  const canVoid = useCan("orders.void");
 
   if (isPending) {
     return (
@@ -77,7 +81,9 @@ export function OrderDetailPage() {
       await completeMutation.mutateAsync();
       toast.success(`Order ${order?.order_number} completed.`);
     } catch (err) {
-      if (!(err instanceof ApiError && err.code === "invalid_transition")) {
+      if (isPermissionDenied(err)) {
+        toast.error(describePermissionDenied(err, "Couldn't complete this order."));
+      } else if (!(err instanceof ApiError && err.code === "invalid_transition")) {
         toast.error(err instanceof Error ? err.message : "Couldn't complete this order.");
       }
     } finally {
@@ -90,7 +96,9 @@ export function OrderDetailPage() {
       await voidMutation.mutateAsync();
       toast.success(`Order ${order?.order_number} voided.`);
     } catch (err) {
-      if (!(err instanceof ApiError && err.code === "invalid_transition")) {
+      if (isPermissionDenied(err)) {
+        toast.error(describePermissionDenied(err, "Couldn't void this order."));
+      } else if (!(err instanceof ApiError && err.code === "invalid_transition")) {
         toast.error(err instanceof Error ? err.message : "Couldn't void this order.");
       }
     } finally {
@@ -109,61 +117,73 @@ export function OrderDetailPage() {
           </div>
         </div>
 
-        {order.status === "pending" && (
+        {order.status === "pending" && (canVoid || canComplete) && (
           <div className="flex gap-2">
-            <AlertDialog open={voidOpen} onOpenChange={setVoidOpen}>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">Void</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Void this order?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This cannot be undone. The order will be marked voided and can't be
-                    changed again.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    disabled={voidMutation.isPending}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      void handleVoid();
-                    }}
-                  >
-                    {voidMutation.isPending ? "Voiding…" : "Void order"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {/* Absent, not disabled, when the permission is missing — same convention as the team table's owner-row rule. */}
+            {canVoid && (
+              <AlertDialog open={voidOpen} onOpenChange={setVoidOpen}>
+                {/*
+                  Not `asChild` + <Button>: Radix's Trigger clones a ref onto
+                  its single child, and Button is a plain function component
+                  that can't accept one (the "Function components cannot be
+                  given refs" warning). AlertDialogTrigger already renders a
+                  real <button> itself, so it takes Button's own classes
+                  instead of wrapping Button.
+                */}
+                <AlertDialogTrigger className={buttonVariants({ variant: "destructive" })}>
+                  Void
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Void this order?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This cannot be undone. The order will be marked voided and can't be
+                      changed again.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      disabled={voidMutation.isPending}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void handleVoid();
+                      }}
+                    >
+                      {voidMutation.isPending ? "Voiding…" : "Void order"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
 
-            <AlertDialog open={completeOpen} onOpenChange={setCompleteOpen}>
-              <AlertDialogTrigger asChild>
-                <Button>Complete</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Complete this order?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This marks the order as completed and can't be changed again.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    disabled={completeMutation.isPending}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      void handleComplete();
-                    }}
-                  >
-                    {completeMutation.isPending ? "Completing…" : "Complete order"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {canComplete && (
+              <AlertDialog open={completeOpen} onOpenChange={setCompleteOpen}>
+                {/* See the Void trigger above for why this isn't `asChild` + <Button>. */}
+                <AlertDialogTrigger className={buttonVariants()}>Complete</AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Complete this order?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This marks the order as completed and can't be changed again.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={completeMutation.isPending}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void handleComplete();
+                      }}
+                    >
+                      {completeMutation.isPending ? "Completing…" : "Complete order"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         )}
       </div>

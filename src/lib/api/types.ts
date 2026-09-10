@@ -14,6 +14,14 @@ export interface AuthUser {
   email: string;
   roles: string[];
   merchant: Merchant | null;
+  /**
+   * The resolved catalog permissions for the user's ACTIVE merchant (see
+   * features/auth/permissions.ts for the catalog and the useCan hook this
+   * feeds). Additive on the wire — always present, [] when merchant is
+   * null — so an old cached value here is just "no permissions", never a
+   * crash.
+   */
+  permissions: string[];
 }
 
 /** Field name -> list of validation messages, as returned on 422 responses. */

@@ -33,6 +33,22 @@ export function registerOnMerchantInactive(cb: MerchantInactiveCallback): void {
   onMerchantInactive = cb;
 }
 
+type PermissionDeniedCallback = (permission: string | undefined) => void;
+
+let onPermissionDenied: PermissionDeniedCallback | null = null;
+
+/**
+ * Fires on a 403 "permission_denied" from any request — a mutation the
+ * frontend didn't hide (stale tab, a role change mid-session, a devtools
+ * call). Wired to refetch /auth/me once and re-derive the UI (see
+ * features/auth/permission-guard.ts), distinct from merchant_inactive and
+ * from confirmation_requires_second_user (which carries no `errors.permission`
+ * and never reaches this callback).
+ */
+export function registerOnPermissionDenied(cb: PermissionDeniedCallback): void {
+  onPermissionDenied = cb;
+}
+
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   /**
@@ -95,6 +111,9 @@ export async function apiRequest<T>(
     }
     if (response.status === 403 && code === "merchant_inactive") {
       onMerchantInactive?.();
+    }
+    if (response.status === 403 && code === "permission_denied") {
+      onPermissionDenied?.(errors?.permission?.[0]);
     }
     throw error;
   }

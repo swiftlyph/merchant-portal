@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/api/client";
+import { describePermissionDenied, isPermissionDenied } from "@/features/auth/permission-error";
 import { formatCents } from "@/lib/money";
 
 /**
@@ -14,6 +15,9 @@ export function isSessionAlreadyOpen(error: unknown): boolean {
 }
 
 export function describeOpenSessionError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't open the cash drawer.");
+  }
   if (error instanceof ApiError) {
     if (error.code === "session_already_open") {
       return "This register's cash drawer is already open — refreshing to show the current session.";
@@ -27,6 +31,9 @@ export function describeOpenSessionError(error: unknown): string {
 }
 
 export function describeMovementError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't record that movement.");
+  }
   if (error instanceof ApiError) {
     if (error.code === "session_closed") {
       return "This cash drawer is already closed — refresh the page to see its final figures.";
@@ -43,6 +50,9 @@ export function describeMovementError(error: unknown): string {
  * structured value over parsing the message.
  */
 export function describeRemittanceError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't record that remittance.");
+  }
   if (error instanceof ApiError) {
     if (error.code === "remittance_exceeds_cash") {
       return error.message || "That amount is more than the cash currently expected on hand.";
@@ -55,6 +65,14 @@ export function describeRemittanceError(error: unknown): string {
   return error instanceof Error ? error.message : "Couldn't record that remittance.";
 }
 
+/**
+ * confirmation_requires_second_user is a SEPARATE 403 code from
+ * permission_denied (a segregation-of-duties rule, not a missing
+ * permission — a user can hold remittances.confirm and still hit this if
+ * they created the remittance themselves) — checked first so it keeps its
+ * own distinct copy rather than falling into the generic permission
+ * mapper.
+ */
 export function describeConfirmError(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "confirmation_requires_second_user") {
@@ -66,12 +84,20 @@ export function describeConfirmError(error: unknown): string {
     if (error.code === "session_closed") {
       return "This cash drawer is already closed — refresh the page to see its final figures.";
     }
+  }
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't confirm this remittance.");
+  }
+  if (error instanceof ApiError) {
     return error.message || "Couldn't confirm this remittance.";
   }
   return error instanceof Error ? error.message : "Couldn't confirm this remittance.";
 }
 
 export function describeCloseError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't close the cash drawer.");
+  }
   if (error instanceof ApiError) {
     if (error.code === "session_closed") {
       return "This cash drawer was already closed — refreshing to show the final figures.";

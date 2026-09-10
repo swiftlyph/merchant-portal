@@ -18,6 +18,7 @@ const activeUser = {
   email: "merchant@gasa.test",
   roles: ["merchant"],
   merchant: { id: 1, name: "Merchant One", status: "active" as const },
+  permissions: [],
 };
 
 const suspendedUser = { ...activeUser, merchant: { ...activeUser.merchant, status: "suspended" as const } };

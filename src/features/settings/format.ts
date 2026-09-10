@@ -3,7 +3,7 @@ import type { RoleInMerchant } from "./types";
 export const ROLE_LABEL: Record<RoleInMerchant, string> = {
   owner: "Owner",
   manager: "Manager",
-  cashier: "Cashier",
+  staff: "Staff",
 };
 
 export function formatDate(iso: string | null): string {

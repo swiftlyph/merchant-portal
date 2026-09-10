@@ -11,6 +11,7 @@ const suspendedUser = {
   email: "suspended@gasa.test",
   roles: ["merchant"],
   merchant: { id: 2, name: "Suspended Merchant", status: "suspended" as const },
+  permissions: [],
 };
 
 function renderSuspendedRoute() {
@@ -51,7 +52,7 @@ describe("SuspendedPage", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
   });
 
-  it("shows the merchant name, the inactive message, and a logout button", () => {
+  it("shows the merchant name, the suspended message, and a logout button", () => {
     useAuthStore.setState({ status: "authed", token: "tok", user: suspendedUser });
 
     renderSuspendedRoute();
@@ -61,11 +62,29 @@ describe("SuspendedPage", () => {
     expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
   });
 
-  it("falls back to a generic label when the merchant is missing", () => {
+  it("shows the pending-approval message for a business awaiting approval", () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "tok",
+      user: { ...suspendedUser, merchant: { ...suspendedUser.merchant, status: "pending" } },
+    });
+
+    renderSuspendedRoute();
+
+    expect(screen.getByText("Suspended Merchant")).toBeInTheDocument();
+    expect(
+      screen.getByText("This business is awaiting approval. You'll be able to get started once it's approved."),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back to a generic label and the removed-user copy when the merchant is missing, without crashing", () => {
     useAuthStore.setState({ status: "authed", token: "tok", user: { ...suspendedUser, merchant: null } });
 
     renderSuspendedRoute();
 
     expect(screen.getByText("Your merchant")).toBeInTheDocument();
+    expect(
+      screen.getByText("You no longer have access to this business. If you think this is a mistake, ask the owner to re-invite you."),
+    ).toBeInTheDocument();
   });
 });

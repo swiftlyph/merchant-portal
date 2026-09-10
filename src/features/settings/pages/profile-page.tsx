@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { ApiError } from "@/lib/api/client";
 import type { ApiFieldErrors } from "@/lib/api/types";
+import { useCan } from "@/features/auth/store";
 import { useProfile } from "../use-profile";
 import { useUpdateProfile } from "../use-update-profile";
 import { useUnsavedChangesGuard } from "../use-unsaved-changes-guard";
@@ -62,6 +63,7 @@ const FULL_ROW = "md:col-span-2";
 export function ProfilePage() {
   const { data: profile, isPending, isError, error, refetch } = useProfile();
   const { mutateAsync, isPending: isSaving } = useUpdateProfile();
+  const canEdit = useCan("profile.edit");
 
   const [values, setValues] = useState<FormValues | null>(null);
   const [savedValues, setSavedValues] = useState<FormValues | null>(null);
@@ -85,7 +87,7 @@ export function ProfilePage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (inFlightRef.current || !values) return;
+    if (inFlightRef.current || !values || !canEdit) return;
     inFlightRef.current = true;
     setFormAlert(null);
     setFieldErrors({});
@@ -105,6 +107,11 @@ export function ProfilePage() {
       inFlightRef.current = false;
     }
   }
+
+  // Read-only, not hidden, without profile.edit — the profile is still
+  // worth seeing, just not worth a form no submit will ever succeed
+  // against. Every field below gets this same disabled state.
+  const fieldsDisabled = isSaving || !canEdit;
 
   if (isPending) {
     return (
@@ -177,6 +184,7 @@ export function ProfilePage() {
                     value={values.legal_name}
                     onChange={(e) => setField("legal_name", e.target.value)}
                     aria-invalid={fieldErrors.legal_name ? true : undefined}
+                    disabled={fieldsDisabled}
                   />
                   <FieldError errors={fieldErrors.legal_name?.map((message) => ({ message }))} />
                 </Field>
@@ -187,6 +195,7 @@ export function ProfilePage() {
                     value={values.tax_identifier}
                     onChange={(e) => setField("tax_identifier", e.target.value)}
                     aria-invalid={fieldErrors.tax_identifier ? true : undefined}
+                    disabled={fieldsDisabled}
                   />
                   <FieldError errors={fieldErrors.tax_identifier?.map((message) => ({ message }))} />
                 </Field>
@@ -204,6 +213,7 @@ export function ProfilePage() {
                       value={values.address_line1}
                       onChange={(e) => setField("address_line1", e.target.value)}
                       aria-invalid={fieldErrors.address_line1 ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.address_line1?.map((message) => ({ message }))} />
                   </Field>
@@ -214,6 +224,7 @@ export function ProfilePage() {
                       value={values.address_line2}
                       onChange={(e) => setField("address_line2", e.target.value)}
                       aria-invalid={fieldErrors.address_line2 ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.address_line2?.map((message) => ({ message }))} />
                   </Field>
@@ -224,6 +235,7 @@ export function ProfilePage() {
                       value={values.city}
                       onChange={(e) => setField("city", e.target.value)}
                       aria-invalid={fieldErrors.city ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.city?.map((message) => ({ message }))} />
                   </Field>
@@ -234,6 +246,7 @@ export function ProfilePage() {
                       value={values.postal_code}
                       onChange={(e) => setField("postal_code", e.target.value)}
                       aria-invalid={fieldErrors.postal_code ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.postal_code?.map((message) => ({ message }))} />
                   </Field>
@@ -252,6 +265,7 @@ export function ProfilePage() {
                       value={values.phone}
                       onChange={(e) => setField("phone", e.target.value)}
                       aria-invalid={fieldErrors.phone ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.phone?.map((message) => ({ message }))} />
                   </Field>
@@ -263,6 +277,7 @@ export function ProfilePage() {
                       value={values.contact_email}
                       onChange={(e) => setField("contact_email", e.target.value)}
                       aria-invalid={fieldErrors.contact_email ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.contact_email?.map((message) => ({ message }))} />
                   </Field>
@@ -282,6 +297,7 @@ export function ProfilePage() {
                       value={values.receipt_header}
                       onChange={(e) => setField("receipt_header", e.target.value)}
                       aria-invalid={fieldErrors.receipt_header ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.receipt_header?.map((message) => ({ message }))} />
                   </Field>
@@ -293,6 +309,7 @@ export function ProfilePage() {
                       value={values.receipt_footer}
                       onChange={(e) => setField("receipt_footer", e.target.value)}
                       aria-invalid={fieldErrors.receipt_footer ? true : undefined}
+                      disabled={fieldsDisabled}
                     />
                     <FieldError errors={fieldErrors.receipt_footer?.map((message) => ({ message }))} />
                   </Field>
@@ -333,10 +350,15 @@ export function ProfilePage() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          {isDirty && <span className="text-sm text-muted-foreground">Unsaved changes</span>}
-          <Button type="submit" disabled={isSaving || !isDirty}>
-            {isSaving ? "Saving…" : "Save changes"}
-          </Button>
+          {/* No Save action without profile.edit — the form is read-only, not just unsubmittable. */}
+          {canEdit && (
+            <>
+              {isDirty && <span className="text-sm text-muted-foreground">Unsaved changes</span>}
+              <Button type="submit" disabled={isSaving || !isDirty}>
+                {isSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </form>

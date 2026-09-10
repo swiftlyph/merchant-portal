@@ -27,7 +27,7 @@ export function makeTeamMember(overrides: Partial<TeamMember> = {}): TeamMember 
     id: 2,
     name: "Jamie Cruz",
     email: "jamie@merchantone.test",
-    role_in_merchant: "cashier",
+    role_in_merchant: "staff",
     is_owner: false,
     created_at: "2026-06-01T00:00:00.000Z",
     ...overrides,
@@ -53,7 +53,7 @@ export function makeAddTeamMemberResponse(
     id: 3,
     name: "New Hire",
     email: "new.hire@merchantone.test",
-    role_in_merchant: "cashier",
+    role_in_merchant: "staff",
     is_owner: false,
     created_at: "2026-09-10T00:00:00.000Z",
     invite: {

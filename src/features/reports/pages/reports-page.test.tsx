@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReportsPage } from "./reports-page";
@@ -81,8 +81,12 @@ describe("ReportsPage", () => {
     renderPage("/app/reports?from=2026-09-01&to=2026-09-03");
 
     // Toggle to the accessible table to assert on the zero-sale row directly.
+    // fireEvent (not a raw .click()) so the resulting state update is flushed
+    // before the chart's SVG unmounts — avoids a flaky window where the
+    // outgoing chart's own "₱0.00" axis tick and the incoming table cell
+    // briefly overlap.
     const toggle = await screen.findByText("Show table");
-    toggle.click();
+    fireEvent.click(toggle);
 
     expect(await screen.findByText("₱0.00")).toBeInTheDocument();
   });

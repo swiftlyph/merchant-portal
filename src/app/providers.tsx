@@ -5,6 +5,7 @@ import { useAuthStore } from "@/features/auth/store";
 import { useAuthBoot } from "@/features/auth/use-auth-boot";
 import { setQueryClientClear, setSessionNavigator } from "@/features/auth/session";
 import { setMerchantGuardNavigator } from "@/features/auth/merchant-guard";
+import "@/features/auth/permission-guard";
 import { FullScreenLoader } from "@/components/ui/full-screen-loader";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";

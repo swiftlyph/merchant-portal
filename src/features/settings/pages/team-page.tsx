@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCan } from "@/features/auth/store";
 import { TeamTable } from "../components/team-table";
 import { InviteMemberDialog } from "../components/invite-member-dialog";
 import { useTeam } from "../use-team";
@@ -9,6 +10,7 @@ import { useTeam } from "../use-team";
 export function TeamPage() {
   const { data, isPending, isError, error, refetch } = useTeam();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const canManageTeam = useCan("team.manage");
 
   const members = data?.data ?? [];
 
@@ -18,7 +20,8 @@ export function TeamPage() {
         <p className="text-sm text-muted-foreground">
           Everyone with access to this merchant's portal.
         </p>
-        <Button onClick={() => setInviteOpen(true)}>Add team member</Button>
+        {/* No add action without team.manage. */}
+        {canManageTeam && <Button onClick={() => setInviteOpen(true)}>Add team member</Button>}
       </div>
 
       {isPending && (

@@ -3,6 +3,7 @@ import { LoginPage } from "@/features/auth/pages/login-page";
 import { SuspendedPage } from "@/features/auth/pages/suspended-page";
 import { AcceptInvitePage } from "@/features/auth/pages/accept-invite-page";
 import { RequireActiveMerchant } from "@/features/auth/require-active-merchant";
+import { RequirePermission } from "@/features/auth/require-permission";
 import { DashboardLayout } from "@/app/dashboard-layout";
 import { DashboardPage } from "@/features/dashboard/pages/dashboard-page";
 import { PosPage } from "@/features/pos/pages/pos-page";
@@ -36,7 +37,15 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/app/dashboard" replace /> },
       { path: "dashboard", element: <DashboardPage />, handle: { title: "Dashboard" } },
-      { path: "pos", element: <PosPage />, handle: { title: "POS" } },
+      {
+        path: "pos",
+        element: (
+          <RequirePermission permission="orders.create">
+            <PosPage />
+          </RequirePermission>
+        ),
+        handle: { title: "POS" },
+      },
       {
         path: "kitchen-queue",
         element: <KitchenQueuePage />,
@@ -58,7 +67,15 @@ export const router = createBrowserRouter([
           parentPath: "/app/cash-drawer",
         },
       },
-      { path: "reports", element: <ReportsPage />, handle: { title: "Reports" } },
+      {
+        path: "reports",
+        element: (
+          <RequirePermission permission="reports.view">
+            <ReportsPage />
+          </RequirePermission>
+        ),
+        handle: { title: "Reports" },
+      },
       {
         path: "settings",
         element: <SettingsLayout />,

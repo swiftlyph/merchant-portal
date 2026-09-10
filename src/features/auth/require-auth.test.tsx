@@ -50,6 +50,7 @@ describe("RequireAuth", () => {
         email: "a@a.com",
         roles: ["merchant"],
         merchant: { id: 1, name: "A's Shop", status: "active" },
+        permissions: [],
       },
     });
 

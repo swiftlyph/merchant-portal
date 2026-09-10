@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/features/auth/store";
 import { useConfirmRemittance } from "../use-confirm-remittance";
 import { REMITTANCE_STATUS_LABEL, formatDateTime } from "../format";
 import { describeConfirmError } from "../errors";
@@ -23,6 +24,7 @@ export function RemittancesList({
 }) {
   const { mutateAsync, isPending, variables } = useConfirmRemittance(sessionId);
   const [inlineError, setInlineError] = useState<{ id: number; message: string } | null>(null);
+  const canConfirm = useCan("remittances.confirm");
 
   if (remittances.length === 0) {
     return (
@@ -65,7 +67,7 @@ export function RemittancesList({
               <Badge variant={remittance.status === "confirmed" ? "default" : "secondary"}>
                 {REMITTANCE_STATUS_LABEL[remittance.status]}
               </Badge>
-              {remittance.status === "pending" && (
+              {remittance.status === "pending" && canConfirm && (
                 <Button
                   size="sm"
                   variant="outline"

@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { describeReportError } from "../errors";
+import { formatCentsAxisTick, tooltipAmountFor } from "../sales-by-day-format";
 import type { SalesByDayRow } from "../types";
 
 const chartConfig = {
@@ -91,17 +92,22 @@ export function SalesByDayChart({
 
         {!isPending && !isError && rows && rows.length > 0 && !showTable && (
           <ChartContainer config={chartConfig} className="h-64 w-full">
-            <BarChart data={rows} accessibilityLayer>
+            <BarChart data={rows} accessibilityLayer margin={{ left: 12 }}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="date" tickFormatter={formatShortDate} tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} width={40} />
+              <YAxis
+                tickFormatter={formatCentsAxisTick}
+                tickLine={false}
+                axisLine={false}
+                width={72}
+              />
               <ChartTooltip
                 content={
                   <ChartTooltipContent
                     labelFormatter={(label) => formatShortDate(String(label))}
                     formatter={(_value, _name, item) => {
                       const row = item.payload as SalesByDayRow;
-                      return [row.net_formatted, chartConfig.net_cents.label];
+                      return [tooltipAmountFor(row), chartConfig.net_cents.label];
                     }}
                   />
                 }

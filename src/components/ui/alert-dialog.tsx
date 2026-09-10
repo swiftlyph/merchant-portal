@@ -28,12 +28,17 @@ function AlertDialogPortal({
   )
 }
 
-function AlertDialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
+// forwardRef: Radix's RemoveScroll (inside the underlying DialogOverlayImpl)
+// renders this component through its own Slot, which clones a ref onto it —
+// a plain function component can't accept that ref and React warns "Function
+// components cannot be given refs".
+const AlertDialogOverlay = React.forwardRef<
+  React.ComponentRef<typeof AlertDialogPrimitive.Overlay>,
+  React.ComponentProps<typeof AlertDialogPrimitive.Overlay>
+>(function AlertDialogOverlay({ className, ...props }, ref) {
   return (
     <AlertDialogPrimitive.Overlay
+      ref={ref}
       data-slot="alert-dialog-overlay"
       className={cn(
         "fixed inset-0 z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
@@ -42,7 +47,7 @@ function AlertDialogOverlay({
       {...props}
     />
   )
-}
+})
 
 function AlertDialogContent({
   className,

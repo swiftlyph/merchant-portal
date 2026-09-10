@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { IconAlertTriangle, IconClock, IconDots } from "@tabler/icons-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useCan } from "@/features/auth/store";
 import { useCompleteTicket } from "../use-complete-ticket";
 import { useHiddenBelowCount } from "../use-overflow-affordance";
 import { useTickingSeconds } from "../use-ticking-seconds";
@@ -133,6 +135,11 @@ export function TicketCard({
   const waitingSeconds = useTickingSeconds(order.waiting_seconds);
   const level = staleness(waitingSeconds);
   const badge = STALENESS_BADGE[level];
+  // The ticket itself always shows — completion is what's gated. Both
+  // paths (the triple-click gesture and the dropdown item) go inert and
+  // explain, rather than silently doing nothing, so someone without the
+  // permission still understands why the third click didn't work.
+  const canComplete = useCan("orders.complete");
 
   // Fires the pull-away animation the INSTANT the third click registers,
   // not after the request resolves — the gesture's own feedback shouldn't
@@ -143,11 +150,17 @@ export function TicketCard({
   // on a screen a barista is relying on.
   const [isExiting, setIsExiting] = useState(false);
 
-  const { progress, requiredClicks, register, reset } = useTripleClick(() => {
+  function attemptComplete() {
+    if (!canComplete) {
+      toast.error("Completing orders requires staff access.");
+      return;
+    }
     setIsExiting(true);
     onExitStart?.();
     complete();
-  });
+  }
+
+  const { progress, requiredClicks, register, reset } = useTripleClick(attemptComplete);
   const { containerRef, setItemRef, hiddenBelowCount } = useHiddenBelowCount(order.items.length);
 
   useEffect(() => {
@@ -228,7 +241,7 @@ export function TicketCard({
                 className="font-sans"
                 onClick={(e) => e.stopPropagation()}
               >
-                <DropdownMenuItem disabled={isPending} onSelect={() => complete()}>
+                <DropdownMenuItem disabled={isPending} onSelect={attemptComplete}>
                   Complete order
                 </DropdownMenuItem>
               </DropdownMenuContent>
