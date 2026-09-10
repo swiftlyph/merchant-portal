@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { IconPrinter } from "@tabler/icons-react";
 import { useSession } from "../use-session";
 import { ReconciliationPanel } from "../components/reconciliation-panel";
 import { MovementsList } from "../components/movements-list";
@@ -8,6 +9,7 @@ import { VarianceBadge } from "../components/variance-badge";
 import { formatDateTime } from "../format";
 import { formatCents } from "@/lib/money";
 import { ApiError } from "@/lib/api/client";
+import { useCan } from "@/features/auth/store";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -16,6 +18,7 @@ export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const sessionId = id ?? "";
   const { data: session, isPending, isError, error } = useSession(sessionId);
+  const canPrintReport = useCan("drawer.view");
 
   if (isPending) {
     return (
@@ -61,9 +64,19 @@ export function SessionDetailPage() {
             {session.closed_at && <span>· Closed {formatDateTime(session.closed_at)}</span>}
           </div>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/app/cash-drawer">Back to cash drawer</Link>
-        </Button>
+        <div className="flex gap-2">
+          {canPrintReport && (
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/app/cash-drawer/sessions/${session.id}/report`}>
+                <IconPrinter />
+                Print shift report
+              </Link>
+            </Button>
+          )}
+          <Button asChild variant="outline" size="sm">
+            <Link to="/app/cash-drawer">Back to cash drawer</Link>
+          </Button>
+        </div>
       </div>
 
       <ReconciliationPanel reconciliation={session.reconciliation} />

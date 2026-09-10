@@ -313,3 +313,32 @@
     @apply font-sans;
   }
 }
+
+/*
+  Print views (F11): receipts and shift reports render on a plain browser
+  print dialog, no ESC/POS driver, so this is the one CSS surface that has
+  to look right on actual thermal/receipt paper. `.print-hide` marks any
+  app-shell chrome that must never show up on a printed page — the
+  sidebar/header (in case a print route is ever reached inside
+  DashboardLayout) and the global sonner Toaster, which is mounted outside
+  the router entirely (see app/providers.tsx) and so isn't covered by a
+  route-level "bare page" layout alone. `.print-frame` is PrintFrame's own
+  wrapper (src/components/print-frame.tsx): full width and no card chrome
+  once actually printing, since the dashed border/background are just an
+  on-screen preview affordance.
+*/
+@media print {
+  .print-hide,
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+
+  .print-frame {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  body {
+    background: white;
+  }
+}

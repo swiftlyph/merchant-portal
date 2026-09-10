@@ -6,6 +6,8 @@ import { SessionDetailPage } from "./session-detail-page";
 import * as cashSessionsApi from "../api";
 import { ApiError } from "@/lib/api/client";
 import { makeMovement, makeReconciliation, makeRemittance, makeSession } from "../test-fixtures";
+import { useAuthStore } from "@/features/auth/store";
+import { OWNER_PRESET } from "@/features/auth/permissions";
 
 vi.mock("../api", () => ({
   fetchSession: vi.fn(),
@@ -61,5 +63,53 @@ describe("SessionDetailPage", () => {
     renderDetailPage("999");
 
     expect(await screen.findByText("Session not found")).toBeInTheDocument();
+  });
+});
+
+describe("SessionDetailPage print button permission gating", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(cashSessionsApi.fetchSession).mockResolvedValue(makeSession());
+  });
+
+  it("shows Print shift report with drawer.view", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Owner",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
+
+    renderDetailPage();
+
+    expect(await screen.findByRole("link", { name: /Print shift report/ })).toBeInTheDocument();
+  });
+
+  it("hides Print shift report without drawer.view", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 2,
+        name: "Viewer",
+        email: "viewer@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [],
+      },
+      sessionNotice: null,
+    });
+
+    renderDetailPage();
+
+    await screen.findByText("Session #1");
+    expect(screen.queryByRole("link", { name: /Print shift report/ })).not.toBeInTheDocument();
   });
 });

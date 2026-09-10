@@ -10,8 +10,10 @@ import { PosPage } from "@/features/pos/pages/pos-page";
 import { KitchenQueuePage } from "@/features/kitchen-queue/pages/kitchen-queue-page";
 import { OrdersPage } from "@/features/orders/pages/orders-page";
 import { OrderDetailPage } from "@/features/orders/pages/order-detail-page";
+import { ReceiptPage } from "@/features/orders/pages/receipt-page";
 import { CashDrawerPage } from "@/features/cash-sessions/pages/cash-drawer-page";
 import { SessionDetailPage } from "@/features/cash-sessions/pages/session-detail-page";
+import { ShiftReportPage } from "@/features/cash-sessions/pages/shift-report-page";
 import { ReportsPage } from "@/features/reports/pages/reports-page";
 import { SettingsLayout } from "@/features/settings/pages/settings-layout";
 import { ProfilePage } from "@/features/settings/pages/profile-page";
@@ -27,6 +29,32 @@ export const router = createBrowserRouter([
   // backend's actual dev-only invite-link generator (CreateTeamInvitationAction).
   { path: "/invite/:token", element: <AcceptInvitePage /> },
   { path: "/accept-invite", element: <AcceptInvitePage /> },
+  // Print views (F11): deliberately NOT nested under DashboardLayout — no
+  // sidebar/header even renders here, rather than relying solely on print
+  // CSS to hide it. Still behind RequireActiveMerchant (needs auth/merchant
+  // context) and RequirePermission (same permission the source detail page
+  // requires), so a stale/shared link can't leak a receipt or shift report
+  // to someone who couldn't see the underlying order/session anyway.
+  {
+    path: "/app/orders/:id/receipt",
+    element: (
+      <RequireActiveMerchant>
+        <RequirePermission permission="orders.view">
+          <ReceiptPage />
+        </RequirePermission>
+      </RequireActiveMerchant>
+    ),
+  },
+  {
+    path: "/app/cash-drawer/sessions/:id/report",
+    element: (
+      <RequireActiveMerchant>
+        <RequirePermission permission="drawer.view">
+          <ShiftReportPage />
+        </RequirePermission>
+      </RequireActiveMerchant>
+    ),
+  },
   {
     path: "/app",
     element: (

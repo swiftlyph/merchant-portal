@@ -1,4 +1,5 @@
 import { IconCircleCheck } from "@tabler/icons-react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +9,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/features/auth/store";
 import type { CheckoutResponse } from "../types";
 
 /**
  * Deliberately minimal — a queue of customers is waiting, so this is a
- * glance-and-go confirmation, not a receipt. "New order" is the only
- * action; there's nowhere else this screen needs to send anyone.
+ * glance-and-go confirmation, not a receipt view. "New order" stays the
+ * primary action; "Print receipt" (F11) is the one a cashier actually uses
+ * mid-rush, so it's big and immediate rather than tucked into order detail
+ * — it opens the same /app/orders/:id/receipt print view, just from here.
  */
 export function SuccessDialog({
   order,
@@ -22,6 +26,9 @@ export function SuccessDialog({
   order: CheckoutResponse | null;
   onNewOrder: () => void;
 }) {
+  const navigate = useNavigate();
+  const canPrintReceipt = useCan("orders.view");
+
   return (
     <Dialog open={order !== null} onOpenChange={(open) => !open && onNewOrder()}>
       <DialogContent className="sm:max-w-sm" showCloseButton={false}>
@@ -39,7 +46,18 @@ export function SuccessDialog({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-col">
+          {order && canPrintReceipt && (
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="h-14 w-full text-base"
+              onClick={() => navigate(`/app/orders/${order.id}/receipt`)}
+            >
+              Print receipt
+            </Button>
+          )}
           <Button type="button" size="lg" className="h-14 w-full text-base" onClick={onNewOrder}>
             New order
           </Button>

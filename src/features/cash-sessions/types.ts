@@ -160,3 +160,100 @@ export interface CloseCashSessionRequest {
   counted_cash_cents: number;
   notes?: string | null;
 }
+
+/**
+ * GET /merchant/cash-sessions/{id}/z-report (P9) — App\Domains\CashSessions\
+ * Http\Resources\ZReportResource. Session-scoped, never date-based: only
+ * orders/movements/remittances attributed to THIS drawer session (see
+ * `cash_session_id`) are counted — a Reports-page date-range total can
+ * legitimately differ, by design (orders rung up with no drawer open are
+ * in neither). Works for both open and closed sessions: `cash.*` mirrors
+ * the reconciliation panel's fields/order exactly, plus
+ * counted_cash/variance, which stay null while the session is open and are
+ * FROZEN (not recomputed) once closed — same rule as CashReconciliation.
+ */
+export interface ZReportSession {
+  id: number;
+  register_id: number;
+  register_name: string;
+  opened_by_user_id: number;
+  opened_at: string;
+  closed_by_user_id: number | null;
+  closed_at: string | null;
+  status: CashSessionStatus;
+}
+
+export interface ZReportFloat {
+  opening_float_cents: number;
+  opening_float_formatted: string;
+}
+
+export interface ZReportPaymentBreakdown {
+  count: number;
+  amount_cents: number;
+  amount_formatted: string;
+}
+
+export interface ZReportSales {
+  orders_count: number;
+  completed_count: number;
+  pending_count: number;
+  voided_count: number;
+  gross_cents: number;
+  gross_formatted: string;
+  discounts_cents: number;
+  discounts_formatted: string;
+  net_cents: number;
+  net_formatted: string;
+  by_payment_method: {
+    cash: ZReportPaymentBreakdown;
+    gcash: ZReportPaymentBreakdown;
+    split: ZReportPaymentBreakdown;
+  };
+}
+
+export interface ZReportTopItem {
+  product_name: string;
+  quantity_sold: number;
+  net_cents: number;
+  net_formatted: string;
+}
+
+/**
+ * Same fields/order as CashReconciliation, plus counted/variance carrying
+ * their own formatted twins here (unlike the session's reconciliation
+ * object, which this feature formats client-side — see that type's
+ * docblock). Render these rows in THIS order to match the reconciliation
+ * panel exactly, per rule 3.
+ */
+export interface ZReportCash {
+  cash_sales_gross_cents: number;
+  cash_sales_gross_formatted: string;
+  voided_cash_cents: number;
+  voided_cash_formatted: string;
+  cash_in_cents: number;
+  cash_in_formatted: string;
+  cash_out_cents: number;
+  cash_out_formatted: string;
+  confirmed_remittances_cents: number;
+  confirmed_remittances_formatted: string;
+  expected_cash_cents: number;
+  expected_cash_formatted: string;
+  /** null while the session is open; frozen at close otherwise. */
+  counted_cash_cents: number | null;
+  counted_cash_formatted: string | null;
+  /** null while the session is open; frozen at close otherwise. */
+  variance_cents: number | null;
+  variance_formatted: string | null;
+}
+
+export interface ZReport {
+  session: ZReportSession;
+  float: ZReportFloat;
+  sales: ZReportSales;
+  top_items: ZReportTopItem[];
+  cash: ZReportCash;
+  movements: CashMovement[];
+  remittances: CashRemittance[];
+  generated_at: string;
+}

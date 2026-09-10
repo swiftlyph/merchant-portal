@@ -7,6 +7,7 @@ import type {
   CashSessionsPage,
   Register,
   RegistersResponse,
+  ZReport,
 } from "./types";
 
 export function makeRegister(overrides: Partial<Register> = {}): Register {
@@ -79,6 +80,71 @@ export function makeSession(overrides: Partial<CashSession> = {}): CashSession {
     reconciliation: makeReconciliation({ opening_float_cents }),
     movements: [],
     remittances: [],
+    ...overrides,
+  };
+}
+
+export function makeZReport(overrides: Partial<ZReport> = {}): ZReport {
+  return {
+    session: {
+      id: 1,
+      register_id: 1,
+      register_name: "Main Register",
+      opened_by_user_id: 1,
+      opened_at: "2026-09-10T01:00:00.000Z",
+      closed_by_user_id: null,
+      closed_at: null,
+      status: "open",
+      ...overrides.session,
+    },
+    float: {
+      opening_float_cents: 100000,
+      opening_float_formatted: formatCents(100000),
+      ...overrides.float,
+    },
+    sales: {
+      orders_count: 4,
+      completed_count: 0,
+      pending_count: 3,
+      voided_count: 1,
+      gross_cents: 30000,
+      gross_formatted: formatCents(30000),
+      discounts_cents: 0,
+      discounts_formatted: formatCents(0),
+      net_cents: 30000,
+      net_formatted: formatCents(30000),
+      by_payment_method: {
+        cash: { count: 1, amount_cents: 14000, amount_formatted: formatCents(14000) },
+        gcash: { count: 1, amount_cents: 16000, amount_formatted: formatCents(16000) },
+        split: { count: 1, amount_cents: 10000, amount_formatted: formatCents(10000) },
+      },
+      ...overrides.sales,
+    },
+    top_items: overrides.top_items ?? [
+      { product_name: "Cafe Latte (16oz)", quantity_sold: 3, net_cents: 30000, net_formatted: formatCents(30000) },
+    ],
+    cash: {
+      cash_sales_gross_cents: 24000,
+      cash_sales_gross_formatted: formatCents(24000),
+      voided_cash_cents: 10000,
+      voided_cash_formatted: formatCents(10000),
+      cash_in_cents: 20000,
+      cash_in_formatted: formatCents(20000),
+      cash_out_cents: 5000,
+      cash_out_formatted: formatCents(5000),
+      confirmed_remittances_cents: 30000,
+      confirmed_remittances_formatted: formatCents(30000),
+      expected_cash_cents: 99000,
+      expected_cash_formatted: formatCents(99000),
+      counted_cash_cents: null,
+      counted_cash_formatted: null,
+      variance_cents: null,
+      variance_formatted: null,
+      ...overrides.cash,
+    },
+    movements: overrides.movements ?? [makeMovement()],
+    remittances: overrides.remittances ?? [makeRemittance()],
+    generated_at: "2026-09-10T14:32:00.000Z",
     ...overrides,
   };
 }
