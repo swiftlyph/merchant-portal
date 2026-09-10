@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore, useCan } from "@/features/auth/store";
 import { RoleSelect } from "./role-select";
 import { RemoveMemberDialog } from "./remove-member-dialog";
 import { useUpdateTeamMember } from "../use-update-team-member";
 import { describeUpdateMemberError } from "../errors";
-import { formatDate } from "../format";
+import { formatDate, ROLE_LABEL } from "../format";
 import type { RoleInMerchant, TeamMember } from "../types";
 
 export function TeamTable({ members }: { members: TeamMember[] }) {
@@ -60,6 +60,7 @@ function TeamRow({
 }) {
   const { mutate, isPending } = useUpdateTeamMember();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const canManageTeam = useCan("team.manage");
 
   function handleRoleChange(role: RoleInMerchant) {
     setErrorMessage(null);
@@ -85,20 +86,31 @@ function TeamRow({
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             {member.is_owner && <Badge variant="secondary">Owner</Badge>}
-            <RoleSelect
-              value={member.role_in_merchant}
-              onValueChange={handleRoleChange}
-              disabled={isPending}
-              aria-label={`Role for ${member.name}`}
-            />
+            {/* Read-only without team.manage: a plain label, not a disabled
+                select — there's no action here to grey out, just a fact to
+                show. */}
+            {canManageTeam ? (
+              <RoleSelect
+                value={member.role_in_merchant}
+                onValueChange={handleRoleChange}
+                disabled={isPending}
+                aria-label={`Role for ${member.name}`}
+              />
+            ) : (
+              !member.is_owner && (
+                <span className="text-sm text-muted-foreground">
+                  {ROLE_LABEL[member.role_in_merchant]}
+                </span>
+              )
+            )}
           </div>
           {errorMessage && <span className="text-xs text-destructive">{errorMessage}</span>}
         </div>
       </TableCell>
       <TableCell className="text-muted-foreground">{formatDate(member.created_at)}</TableCell>
       <TableCell className="text-right">
-        {/* No remove action for the owner row — it does not apply, not disabled. */}
-        {!member.is_owner && (
+        {/* No remove action for the owner row (does not apply) or without team.manage — absent, not disabled, either way. */}
+        {!member.is_owner && canManageTeam && (
           <Button variant="ghost" size="sm" onClick={onRequestRemove}>
             Remove
           </Button>

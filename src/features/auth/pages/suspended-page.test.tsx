@@ -11,6 +11,7 @@ const suspendedUser = {
   email: "suspended@gasa.test",
   roles: ["merchant"],
   merchant: { id: 2, name: "Suspended Merchant", status: "suspended" as const },
+  permissions: [],
 };
 
 function renderSuspendedRoute() {

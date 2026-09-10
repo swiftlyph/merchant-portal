@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { useCan } from "@/features/auth/store"
 import { useKitchenQueueSummary } from "@/features/kitchen-queue/use-kitchen-queue-summary"
 import {
   Sidebar,
@@ -33,6 +34,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // is a single aggregate query, built specifically to be polled from here.
   const { data: kitchenSummary } = useKitchenQueueSummary({})
 
+  // Nav entries are hidden only when the user can't view the page AT ALL
+  // (reports without reports.view; settings without either of its two
+  // sub-pages) — an entry a user can partly use (e.g. POS without
+  // orders.void doesn't affect the POS entry, which only needs
+  // orders.create) stays visible. Route guards (RequirePermission) are the
+  // actual enforcement; this only keeps the sidebar from listing dead ends.
+  const canViewReports = useCan("reports.view")
+  const canViewProfile = useCan("profile.view")
+  const canViewTeam = useCan("team.view")
+
   const navMain = [
     { title: "Dashboard", url: "/app/dashboard", icon: <LayoutDashboardIcon /> },
     { title: "POS", url: "/app/pos", icon: <CreditCardIcon /> },
@@ -50,8 +61,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
     { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
     { title: "Cash Drawer", url: "/app/cash-drawer", icon: <WalletIcon /> },
-    { title: "Reports", url: "/app/reports", icon: <BarChart3Icon /> },
-    { title: "Settings", url: "/app/settings", icon: <SettingsIcon /> },
+    ...(canViewReports
+      ? [{ title: "Reports", url: "/app/reports", icon: <BarChart3Icon /> }]
+      : []),
+    ...(canViewProfile || canViewTeam
+      ? [{ title: "Settings", url: "/app/settings", icon: <SettingsIcon /> }]
+      : []),
   ]
 
   return (

@@ -34,7 +34,7 @@ export function InviteMemberDialog({
   const { mutateAsync, isPending, reset } = useAddTeamMember();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<RoleInMerchant>("cashier");
+  const [role, setRole] = useState<RoleInMerchant>("staff");
   const [fieldErrors, setFieldErrors] = useState<ApiFieldErrors>({});
   const [formAlert, setFormAlert] = useState<string | null>(null);
   const [created, setCreated] = useState<AddTeamMemberResponse | null>(null);
@@ -46,7 +46,7 @@ export function InviteMemberDialog({
   function resetForm() {
     setName("");
     setEmail("");
-    setRole("cashier");
+    setRole("staff");
     setFieldErrors({});
     setFormAlert(null);
     setCreated(null);

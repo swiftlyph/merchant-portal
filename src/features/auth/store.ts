@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { registerTokenGetter } from "@/lib/api/client";
 import type { AuthUser } from "@/lib/api/types";
+import type { MerchantPermission } from "./permissions";
 
 export type AuthStatus = "booting" | "guest" | "authed";
 
@@ -72,4 +73,20 @@ registerTokenGetter(() => useAuthStore.getState().token);
  */
 export function selectIsMerchantActive(state: AuthState): boolean {
   return state.user?.merchant?.status === "active";
+}
+
+/**
+ * The ONE way anything in the app checks whether the current user holds a
+ * given catalog permission. Absent permissions (guest, no active merchant,
+ * or genuinely not granted) all read as false the same way — there's no
+ * separate "unknown" state to handle, matching /auth/me always sending an
+ * array (possibly empty), never omitting the field.
+ */
+export function selectHasPermission(permission: MerchantPermission) {
+  return (state: AuthState): boolean => Boolean(state.user?.permissions?.includes(permission));
+}
+
+/** Convenience hook wrapping selectHasPermission — `useCan("orders.void")`. */
+export function useCan(permission: MerchantPermission): boolean {
+  return useAuthStore(selectHasPermission(permission));
 }

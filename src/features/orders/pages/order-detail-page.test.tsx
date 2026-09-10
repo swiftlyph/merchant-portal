@@ -8,6 +8,8 @@ import { OrderDetailPage } from "./order-detail-page";
 import * as ordersApi from "../api";
 import { ApiError } from "@/lib/api/client";
 import { makeOrder } from "../test-fixtures";
+import { useAuthStore } from "@/features/auth/store";
+import { OWNER_PRESET, STAFF_PRESET } from "@/features/auth/permissions";
 
 vi.mock("../api", () => ({
   fetchOrder: vi.fn(),
@@ -36,6 +38,22 @@ function renderDetailPage(id = "1") {
 describe("OrderDetailPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // This file exercises the order transitions themselves, not permission
+    // gating (see a dedicated permissions test for that) — an owner
+    // fixture keeps both actions visible, same as before F10.
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Merchant One",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
   });
 
   it("renders line items, add-ons, subtotal/discount/total from the server's formatted strings", async () => {
@@ -209,5 +227,76 @@ describe("OrderDetailPage", () => {
     expect(toast.success).not.toHaveBeenCalled();
     // fetchOrder is called once on mount, again once the invalidated query refetches.
     await waitFor(() => expect(ordersApi.fetchOrder).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("OrderDetailPage permission gating", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(ordersApi.fetchOrder).mockResolvedValue(makeOrder());
+  });
+
+  it("staff (orders.complete, no orders.void): shows Complete, hides Void", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 2,
+        name: "Staffer",
+        email: "staff@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...STAFF_PRESET],
+      },
+      sessionNotice: null,
+    });
+
+    renderDetailPage();
+
+    expect(await screen.findByRole("button", { name: "Complete" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Void" })).not.toBeInTheDocument();
+  });
+
+  it("owner: shows both Complete and Void", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Owner",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
+
+    renderDetailPage();
+
+    expect(await screen.findByRole("button", { name: "Complete" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Void" })).toBeInTheDocument();
+  });
+
+  it("with neither permission: shows no action buttons at all", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 3,
+        name: "Viewer",
+        email: "viewer@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: ["orders.view"],
+      },
+      sessionNotice: null,
+    });
+
+    renderDetailPage();
+
+    await screen.findByText("ORD-000001");
+    expect(screen.queryByRole("button", { name: "Complete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Void" })).not.toBeInTheDocument();
   });
 });

@@ -7,6 +7,8 @@ import { ProfilePage } from "./profile-page";
 import * as settingsApi from "../api";
 import { ApiError } from "@/lib/api/client";
 import { makeProfile } from "../test-fixtures";
+import { useAuthStore } from "@/features/auth/store";
+import { OWNER_PRESET } from "@/features/auth/permissions";
 
 vi.mock("../api", () => ({
   fetchProfile: vi.fn(),
@@ -40,6 +42,22 @@ function renderProfilePage() {
 describe("ProfilePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // This file exercises the form itself, not permission gating (see a
+    // dedicated permissions test for that) — an owner fixture keeps the
+    // form editable, same as before F10.
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Merchant One",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
   });
 
   it("loads and shows existing profile values", async () => {
@@ -147,5 +165,61 @@ describe("ProfilePage", () => {
     await user.click(screen.getByRole("button", { name: "Stay" }));
     expect(screen.queryByText(/unsaved changes\. leave without saving/i)).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("Quezon City Extension")).toBeInTheDocument();
+  });
+});
+
+describe("ProfilePage permission gating", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("without profile.edit: fields are disabled and there is no Save action", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 2,
+        name: "Staffer",
+        email: "staff@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: ["profile.view"],
+      },
+      sessionNotice: null,
+    });
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile({ city: "Quezon City" }));
+
+    renderProfilePage();
+
+    await screen.findByDisplayValue("Quezon City");
+    expect(screen.getByLabelText("Legal name")).toBeDisabled();
+    expect(screen.getByLabelText("City")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument();
+  });
+
+  it("with profile.edit: fields are editable and Save is available once dirty", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Owner",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile({ city: "Quezon City" }));
+
+    renderProfilePage();
+    const user = userEvent.setup();
+
+    await screen.findByDisplayValue("Quezon City");
+    expect(screen.getByLabelText("City")).not.toBeDisabled();
+
+    await user.type(screen.getByLabelText("City"), " Extension");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 });

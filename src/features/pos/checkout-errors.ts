@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/api/client";
+import { describePermissionDenied, isPermissionDenied } from "@/features/auth/permission-error";
 
 /**
  * Every checkout failure path gets a cashier-readable message — someone
@@ -19,6 +20,14 @@ export interface CheckoutErrorInfo {
 }
 
 export function describeCheckoutError(error: unknown): CheckoutErrorInfo {
+  if (isPermissionDenied(error)) {
+    return {
+      message: describePermissionDenied(error, "Couldn't complete the charge."),
+      requiresNewKey: false,
+      canRetrySameKey: false,
+    };
+  }
+
   if (error instanceof ApiError) {
     if (error.status === 0) {
       return {

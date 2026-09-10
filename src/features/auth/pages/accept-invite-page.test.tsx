@@ -47,7 +47,7 @@ describe("AcceptInvitePage", () => {
   it("reads the token from the :token path param", async () => {
     vi.mocked(authApi.acceptInvite).mockResolvedValue({
       token: "session-token",
-      user: { id: 1, name: "New Hire", email: "new@merchantone.test", roles: [], merchant: { id: 1, name: "Merchant One", status: "active" } },
+      user: { id: 1, name: "New Hire", email: "new@merchantone.test", roles: [], merchant: { id: 1, name: "Merchant One", status: "active" }, permissions: [] },
     });
 
     renderAcceptInvitePage("/invite/test-token-123");
@@ -62,7 +62,7 @@ describe("AcceptInvitePage", () => {
   it("reads the token from ?token= on /accept-invite", async () => {
     vi.mocked(authApi.acceptInvite).mockResolvedValue({
       token: "session-token",
-      user: { id: 1, name: "New Hire", email: "new@merchantone.test", roles: [], merchant: { id: 1, name: "Merchant One", status: "active" } },
+      user: { id: 1, name: "New Hire", email: "new@merchantone.test", roles: [], merchant: { id: 1, name: "Merchant One", status: "active" }, permissions: [] },
     });
 
     renderAcceptInvitePage("/accept-invite?token=query-token-456");
@@ -101,6 +101,7 @@ describe("AcceptInvitePage", () => {
         email: "new@merchantone.test",
         roles: [],
         merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [],
       },
     });
 
@@ -143,7 +144,7 @@ describe("AcceptInvitePage", () => {
     useAuthStore.setState({
       status: "authed",
       token: "existing-token",
-      user: { id: 9, name: "Existing User", email: "existing@merchantone.test", roles: [], merchant: { id: 1, name: "Merchant One", status: "active" } },
+      user: { id: 9, name: "Existing User", email: "existing@merchantone.test", roles: [], merchant: { id: 1, name: "Merchant One", status: "active" }, permissions: [] },
       sessionNotice: null,
     });
 

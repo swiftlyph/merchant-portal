@@ -1,5 +1,5 @@
 import { IconClockHour4, IconReceipt2, IconToolsKitchen2, IconCash } from "@tabler/icons-react";
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore, useCan } from "@/features/auth/store";
 import { useMe } from "@/features/auth/use-me";
 import { useKitchenQueueSummary } from "@/features/kitchen-queue/use-kitchen-queue-summary";
 import { formatWaitingTime } from "@/features/kitchen-queue/waiting-time";
@@ -32,7 +32,10 @@ export function DashboardPage() {
   const kitchenSummary = useKitchenQueueSummary({});
   const ordersToday = useOrdersToday();
   const today = todayDateParam();
-  const revenueToday = useSalesSummary({ from: today, to: today });
+  const canViewReports = useCan("reports.view");
+  // The query is conditional too, not just the card — staff has no reason
+  // to trigger a reports.view-gated request at all.
+  const revenueToday = useSalesSummary({ from: today, to: today }, { enabled: canViewReports });
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,18 +44,21 @@ export function DashboardPage() {
       <QuickActions />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        <StatCard
-          label="Revenue today"
-          icon={<IconCash className="size-4" />}
-          value={revenueToday.data?.net_formatted}
-          isPending={revenueToday.isPending}
-          isError={revenueToday.isError}
-          errorMessage={
-            revenueToday.error instanceof Error ? revenueToday.error.message : undefined
-          }
-          onRetry={() => void revenueToday.refetch()}
-          href="/app/reports"
-        />
+        {/* No revenue card without reports.view — the other cards still fill the row. */}
+        {canViewReports && (
+          <StatCard
+            label="Revenue today"
+            icon={<IconCash className="size-4" />}
+            value={revenueToday.data?.net_formatted}
+            isPending={revenueToday.isPending}
+            isError={revenueToday.isError}
+            errorMessage={
+              revenueToday.error instanceof Error ? revenueToday.error.message : undefined
+            }
+            onRetry={() => void revenueToday.refetch()}
+            href="/app/reports"
+          />
+        )}
 
         <StatCard
           label="Pending in queue"

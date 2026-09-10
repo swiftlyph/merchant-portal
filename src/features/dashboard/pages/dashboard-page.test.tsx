@@ -15,6 +15,7 @@ import * as reportsApi from "@/features/reports/api";
 import { makeOrder, makeOrdersPage } from "@/features/orders/test-fixtures";
 import { makeKitchenQueueSummary } from "@/features/kitchen-queue/test-fixtures";
 import { makeSalesSummary } from "@/features/reports/test-fixtures";
+import { OWNER_PRESET } from "@/features/auth/permissions";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -43,6 +44,7 @@ const user = {
   email: "merchant@gasa.test",
   roles: ["merchant"],
   merchant: { id: 1, name: "Merchant One", status: "active" as const },
+  permissions: [...OWNER_PRESET],
 };
 
 function renderDashboard() {
@@ -242,5 +244,38 @@ describe("DashboardPage", () => {
       "href",
       "/app/kitchen-queue",
     );
+  });
+});
+
+describe("DashboardPage permission gating", () => {
+  const staffUser = { ...user, id: 2, permissions: ["queue.view"] };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    useAuthStore.setState({ status: "authed", token: "tok", user: staffUser, sessionNotice: null });
+    vi.mocked(ordersApi.fetchOrders).mockResolvedValue(makeOrdersPage());
+    vi.mocked(kitchenApi.fetchKitchenQueueSummary).mockResolvedValue(makeKitchenQueueSummary());
+  });
+
+  it("staff (no orders.create): no 'New order' quick action, Queue still shows", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, staffUser));
+
+    renderDashboard();
+
+    expect(await screen.findByRole("link", { name: /^Queue$/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /New order/ })).not.toBeInTheDocument();
+  });
+
+  it("staff (no reports.view): no revenue card, other stat cards still show", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, staffUser));
+
+    renderDashboard();
+
+    expect(await screen.findByText("Pending in queue")).toBeInTheDocument();
+    expect(screen.getByText("Orders today")).toBeInTheDocument();
+    expect(screen.queryByText("Revenue today")).not.toBeInTheDocument();
+    // reports.view-gated request should never even fire for staff.
+    expect(reportsApi.fetchSalesSummary).not.toHaveBeenCalled();
   });
 });

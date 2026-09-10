@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCan } from "@/features/auth/store";
 import { useCurrentSession } from "../use-current-session";
 import { useRegisters } from "../use-registers";
 import { OpenCashDrawerPanel } from "../components/open-cash-drawer-panel";
@@ -42,6 +43,11 @@ export function CashDrawerPage() {
   const [remittanceDialogOpen, setRemittanceDialogOpen] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
 
+  const canOpen = useCan("drawer.open");
+  const canClose = useCan("drawer.close");
+  const canRecordMovements = useCan("drawer.movements");
+  const canCreateRemittance = useCan("remittances.create");
+
   function openMovementDialog(type: CashMovementType) {
     setMovementType(type);
     setMovementDialogOpen(true);
@@ -80,8 +86,17 @@ export function CashDrawerPage() {
         </div>
       )}
 
-      {!isPending && !session && !isError && (
+      {!isPending && !session && !isError && canOpen && (
         <OpenCashDrawerPanel onOpened={() => void refetch()} />
+      )}
+
+      {!isPending && !session && !isError && !canOpen && (
+        <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-border p-10 text-center">
+          <p className="text-sm font-medium">The cash drawer is closed</p>
+          <p className="text-sm text-muted-foreground">
+            Opening it requires staff access. Ask a teammate to open it for this shift.
+          </p>
+        </div>
       )}
 
       {session && (
@@ -105,20 +120,34 @@ export function CashDrawerPage() {
             {session.notes && <span>Notes: {session.notes}</span>}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => openMovementDialog("cash_in")}>
-              Record cash in
-            </Button>
-            <Button variant="outline" onClick={() => openMovementDialog("cash_out")}>
-              Record cash out
-            </Button>
-            <Button variant="outline" onClick={() => setRemittanceDialogOpen(true)}>
-              Record remittance
-            </Button>
-            <Button variant="destructive" className="ml-auto" onClick={() => setCloseDialogOpen(true)}>
-              Close cash drawer
-            </Button>
-          </div>
+          {(canRecordMovements || canCreateRemittance || canClose) && (
+            <div className="flex flex-wrap gap-2">
+              {canRecordMovements && (
+                <>
+                  <Button variant="outline" onClick={() => openMovementDialog("cash_in")}>
+                    Record cash in
+                  </Button>
+                  <Button variant="outline" onClick={() => openMovementDialog("cash_out")}>
+                    Record cash out
+                  </Button>
+                </>
+              )}
+              {canCreateRemittance && (
+                <Button variant="outline" onClick={() => setRemittanceDialogOpen(true)}>
+                  Record remittance
+                </Button>
+              )}
+              {canClose && (
+                <Button
+                  variant="destructive"
+                  className="ml-auto"
+                  onClick={() => setCloseDialogOpen(true)}
+                >
+                  Close cash drawer
+                </Button>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="flex flex-col gap-2">

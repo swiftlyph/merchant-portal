@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/api/client";
+import { describePermissionDenied, isPermissionDenied } from "@/features/auth/permission-error";
 
 /**
  * Settings error codes get plain-language messages. member_already_exists
@@ -10,6 +11,9 @@ import { ApiError } from "@/lib/api/client";
  */
 
 export function describeProfileError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't save the profile.");
+  }
   if (error instanceof ApiError) {
     return error.message || "Couldn't save the profile.";
   }
@@ -17,6 +21,9 @@ export function describeProfileError(error: unknown): string {
 }
 
 export function describeAddMemberError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't add that team member.");
+  }
   if (error instanceof ApiError) {
     if (error.code === "member_already_exists") {
       return "This email is already on your team.";
@@ -30,6 +37,9 @@ export function describeAddMemberError(error: unknown): string {
 }
 
 export function describeUpdateMemberError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't update that team member's role.");
+  }
   if (error instanceof ApiError) {
     return error.message || "Couldn't update that team member's role.";
   }
@@ -37,6 +47,9 @@ export function describeUpdateMemberError(error: unknown): string {
 }
 
 export function describeRemoveMemberError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't remove that team member.");
+  }
   if (error instanceof ApiError) {
     if (error.code === "cannot_remove_owner") {
       return "The merchant's owner can't be removed from the team.";

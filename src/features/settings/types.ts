@@ -51,13 +51,15 @@ export interface UpdateMerchantProfileRequest {
 }
 
 /**
- * app/Domains/Merchant/Enums/RoleInMerchant.php — recorded and returned
- * only, NOT enforced as an authorization boundary yet. Never build UI that
- * gates visibility/actions by role.
+ * app/Domains/Merchant/Enums/RoleInMerchant.php — recorded and returned,
+ * and used here only to let an owner/manager assign a role. UI gating
+ * itself is by PERMISSION (see features/auth/permissions.ts and useCan),
+ * never by comparing this value directly — a role is just the preset a
+ * user's permissions were assigned from.
  */
-export type RoleInMerchant = "owner" | "manager" | "cashier";
+export type RoleInMerchant = "owner" | "manager" | "staff";
 
-export const ROLE_IN_MERCHANT_VALUES: RoleInMerchant[] = ["owner", "manager", "cashier"];
+export const ROLE_IN_MERCHANT_VALUES: RoleInMerchant[] = ["owner", "manager", "staff"];
 
 /** A single row from GET /merchant/team (TeamMemberResource). */
 export interface TeamMember {
