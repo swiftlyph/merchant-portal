@@ -28,7 +28,7 @@ export function SuccessDialog({
         <DialogHeader className="items-center text-center">
           <IconCircleCheck className="size-12 text-primary" />
           <DialogTitle className="text-xl">Order placed</DialogTitle>
-          <DialogDescription>Sent to the kitchen queue.</DialogDescription>
+          <DialogDescription>Sent to the queue.</DialogDescription>
         </DialogHeader>
 
         {order && (

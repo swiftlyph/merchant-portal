@@ -136,7 +136,7 @@ export function KitchenQueuePage() {
       {isError && !data && (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : "Couldn't load the kitchen queue."}
+            {error instanceof Error ? error.message : "Couldn't load the queue."}
           </p>
           <Button variant="outline" size="sm" onClick={() => void refetch()}>
             Retry

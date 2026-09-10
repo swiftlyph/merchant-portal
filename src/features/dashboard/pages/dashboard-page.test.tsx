@@ -229,7 +229,7 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("View all orders")).toBeInTheDocument();
   });
 
-  it("New order and Kitchen queue quick actions link to the right routes", async () => {
+  it("New order and Queue quick actions link to the right routes", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
 
     renderDashboard();
@@ -238,7 +238,7 @@ describe("DashboardPage", () => {
       "href",
       "/app/pos",
     );
-    expect(screen.getByRole("link", { name: /Kitchen queue/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^Queue$/ })).toHaveAttribute(
       "href",
       "/app/kitchen-queue",
     );

@@ -55,7 +55,7 @@ export function DashboardPage() {
         />
 
         <StatCard
-          label="Pending in kitchen"
+          label="Pending in queue"
           icon={<IconToolsKitchen2 className="size-4" />}
           value={kitchenSummary.data?.pending_count}
           isPending={kitchenSummary.isPending}
