@@ -1,13 +1,19 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { cn } from "cn";
 
 /**
  * One dashboard stat. Each card owns its own loading/error state so one
  * query failing (say, the kitchen summary) never takes the others — or the
  * whole page — down with it; the caller just passes what it has.
+ *
+ * `href`, when given, makes the whole card a link (e.g. the revenue card ->
+ * /app/reports) — the retry button inside still stops its own click from
+ * navigating, since retrying an error shouldn't also follow the link.
  */
 export function StatCard({
   label,
@@ -17,6 +23,7 @@ export function StatCard({
   errorMessage,
   onRetry,
   icon,
+  href,
 }: {
   label: string;
   value: ReactNode;
@@ -25,9 +32,10 @@ export function StatCard({
   errorMessage?: string;
   onRetry?: () => void;
   icon?: ReactNode;
+  href?: string;
 }) {
-  return (
-    <Card>
+  const content = (
+    <Card className={cn(href && "transition-colors hover:bg-muted")}>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-sm text-muted-foreground">
           {icon}
@@ -44,7 +52,14 @@ export function StatCard({
               {errorMessage ?? "Couldn't load."}
             </div>
             {onRetry && (
-              <Button variant="ghost" size="xs" onClick={onRetry}>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onRetry();
+                }}
+              >
                 Retry
               </Button>
             )}
@@ -54,5 +69,13 @@ export function StatCard({
         {!isPending && !isError && <div className="text-3xl font-bold tabular-nums">{value}</div>}
       </CardContent>
     </Card>
+  );
+
+  return href ? (
+    <Link to={href} className="block">
+      {content}
+    </Link>
+  ) : (
+    content
   );
 }

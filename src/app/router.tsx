@@ -10,6 +10,7 @@ import { OrdersPage } from "@/features/orders/pages/orders-page";
 import { OrderDetailPage } from "@/features/orders/pages/order-detail-page";
 import { CashDrawerPage } from "@/features/cash-sessions/pages/cash-drawer-page";
 import { SessionDetailPage } from "@/features/cash-sessions/pages/session-detail-page";
+import { ReportsPage } from "@/features/reports/pages/reports-page";
 import { NotFound } from "@/pages/not-found";
 
 export const router = createBrowserRouter([
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           parentPath: "/app/cash-drawer",
         },
       },
+      { path: "reports", element: <ReportsPage />, handle: { title: "Reports" } },
     ],
   },
   { path: "*", element: <NotFound /> },

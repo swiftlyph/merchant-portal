@@ -4,6 +4,7 @@ import {
   ClockIcon,
   ClipboardListIcon,
   WalletIcon,
+  BarChart3Icon,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -45,6 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
     { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
     { title: "Cash Drawer", url: "/app/cash-drawer", icon: <WalletIcon /> },
+    { title: "Reports", url: "/app/reports", icon: <BarChart3Icon /> },
   ]
 
   return (
