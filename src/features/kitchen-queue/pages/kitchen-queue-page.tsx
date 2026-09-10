@@ -88,7 +88,7 @@ export function KitchenQueuePage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold">Kitchen Queue</h1>
+          <h1 className="text-2xl font-bold">Order queue</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="secondary">{pendingCount} pending</Badge>
             <span>Updated {lastUpdated}</span>

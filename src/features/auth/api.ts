@@ -24,6 +24,23 @@ export function fetchMe(options?: RequestOptions): Promise<AuthUser> {
   return api.get<AuthUser>("/auth/me", options);
 }
 
+export interface AcceptInviteRequest {
+  token: string;
+  password: string;
+}
+
+export interface AcceptInviteResponse {
+  token: string;
+  user: AuthUser;
+}
+
+/** An invalid/expired/used token is an expected, in-band 422 — never treated as a session expiring. */
+export function acceptInvite(payload: AcceptInviteRequest): Promise<AcceptInviteResponse> {
+  return api.post<AcceptInviteResponse>("/auth/accept-invite", payload, {
+    suppressUnauthorized: true,
+  });
+}
+
 /** Revokes only the current token. Callers clear local state regardless of the outcome. */
 export function logout(): Promise<void> {
   return api.post<void>("/auth/logout", undefined, { suppressUnauthorized: true });

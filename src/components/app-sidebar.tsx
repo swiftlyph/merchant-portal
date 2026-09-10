@@ -5,6 +5,7 @@ import {
   ClipboardListIcon,
   WalletIcon,
   BarChart3Icon,
+  SettingsIcon,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -36,7 +37,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Dashboard", url: "/app/dashboard", icon: <LayoutDashboardIcon /> },
     { title: "POS", url: "/app/pos", icon: <CreditCardIcon /> },
     {
-      title: "Kitchen Queue",
+      // Label reads "Queue" — GASA merchants aren't all kitchens (coffee
+      // shops, bakeries, canteens too); the route/module/hooks underneath
+      // stay named kitchen-queue (out of scope for this rename).
+      title: "Queue",
       url: "/app/kitchen-queue",
       icon: <ClockIcon />,
       // A badge draws attention to something needing action — an empty
@@ -47,6 +51,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
     { title: "Cash Drawer", url: "/app/cash-drawer", icon: <WalletIcon /> },
     { title: "Reports", url: "/app/reports", icon: <BarChart3Icon /> },
+    { title: "Settings", url: "/app/settings", icon: <SettingsIcon /> },
   ]
 
   return (
