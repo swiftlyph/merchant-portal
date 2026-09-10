@@ -88,7 +88,7 @@ export function KitchenQueuePage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold">Kitchen Queue</h1>
+          <h1 className="text-2xl font-bold">Order queue</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="secondary">{pendingCount} pending</Badge>
             <span>Updated {lastUpdated}</span>
@@ -136,7 +136,7 @@ export function KitchenQueuePage() {
       {isError && !data && (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : "Couldn't load the kitchen queue."}
+            {error instanceof Error ? error.message : "Couldn't load the queue."}
           </p>
           <Button variant="outline" size="sm" onClick={() => void refetch()}>
             Retry

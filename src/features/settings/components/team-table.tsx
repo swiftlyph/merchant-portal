@@ -1,0 +1,109 @@
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAuthStore } from "@/features/auth/store";
+import { RoleSelect } from "./role-select";
+import { RemoveMemberDialog } from "./remove-member-dialog";
+import { useUpdateTeamMember } from "../use-update-team-member";
+import { describeUpdateMemberError } from "../errors";
+import { formatDate } from "../format";
+import type { RoleInMerchant, TeamMember } from "../types";
+
+export function TeamTable({ members }: { members: TeamMember[] }) {
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
+
+  return (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Joined</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {members.map((member) => (
+            <TeamRow
+              key={member.id}
+              member={member}
+              isCurrentUser={member.id === currentUserId}
+              onRequestRemove={() => setRemoveTarget(member)}
+            />
+          ))}
+        </TableBody>
+      </Table>
+
+      {removeTarget && (
+        <RemoveMemberDialog
+          open
+          onOpenChange={(open) => !open && setRemoveTarget(null)}
+          member={removeTarget}
+        />
+      )}
+    </>
+  );
+}
+
+function TeamRow({
+  member,
+  isCurrentUser,
+  onRequestRemove,
+}: {
+  member: TeamMember;
+  isCurrentUser: boolean;
+  onRequestRemove: () => void;
+}) {
+  const { mutate, isPending } = useUpdateTeamMember();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  function handleRoleChange(role: RoleInMerchant) {
+    setErrorMessage(null);
+    mutate(
+      { userId: member.id, roleInMerchant: role },
+      { onError: (error) => setErrorMessage(describeUpdateMemberError(error)) },
+    );
+  }
+
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="flex flex-col">
+          <span className="font-medium">
+            {member.name}
+            {isCurrentUser && <span className="ml-2 text-xs text-muted-foreground">(you)</span>}
+          </span>
+          {member.is_owner && <span className="text-xs text-muted-foreground">Owner of this merchant</span>}
+        </div>
+      </TableCell>
+      <TableCell className="text-muted-foreground">{member.email}</TableCell>
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            {member.is_owner && <Badge variant="secondary">Owner</Badge>}
+            <RoleSelect
+              value={member.role_in_merchant}
+              onValueChange={handleRoleChange}
+              disabled={isPending}
+              aria-label={`Role for ${member.name}`}
+            />
+          </div>
+          {errorMessage && <span className="text-xs text-destructive">{errorMessage}</span>}
+        </div>
+      </TableCell>
+      <TableCell className="text-muted-foreground">{formatDate(member.created_at)}</TableCell>
+      <TableCell className="text-right">
+        {/* No remove action for the owner row — it does not apply, not disabled. */}
+        {!member.is_owner && (
+          <Button variant="ghost" size="sm" onClick={onRequestRemove}>
+            Remove
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}

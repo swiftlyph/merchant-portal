@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { StatCard } from "./stat-card";
 
 describe("StatCard", () => {
@@ -37,6 +38,39 @@ describe("StatCard", () => {
 
     expect(screen.getByText("Couldn't load.")).toBeInTheDocument();
     expect(screen.queryByText("5")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("wraps the whole card in a link when href is given", () => {
+    render(
+      <MemoryRouter>
+        <StatCard label="Revenue today" value="₱123.45" isPending={false} isError={false} href="/app/reports" />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/app/reports");
+    expect(link).toHaveTextContent("₱123.45");
+  });
+
+  it("clicking retry inside a linked card does not also navigate", async () => {
+    const onRetry = vi.fn();
+    render(
+      <MemoryRouter>
+        <StatCard
+          label="Revenue today"
+          value="₱123.45"
+          isPending={false}
+          isError
+          errorMessage="Couldn't load."
+          onRetry={onRetry}
+          href="/app/reports"
+        />
+      </MemoryRouter>,
+    );
 
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Retry" }));

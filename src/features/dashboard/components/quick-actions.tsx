@@ -13,7 +13,7 @@ export function QuickActions() {
       </Button>
       <Button size="lg" variant="outline" className="h-14 gap-2 px-6 text-base" asChild>
         <Link to="/app/kitchen-queue">
-          <IconClockHour4 /> Kitchen queue
+          <IconClockHour4 /> Queue
         </Link>
       </Button>
     </div>

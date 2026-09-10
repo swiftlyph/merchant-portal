@@ -11,8 +11,10 @@ import {
 } from "@/features/auth/session";
 import * as ordersApi from "@/features/orders/api";
 import * as kitchenApi from "@/features/kitchen-queue/api";
+import * as reportsApi from "@/features/reports/api";
 import { makeOrder, makeOrdersPage } from "@/features/orders/test-fixtures";
 import { makeKitchenQueueSummary } from "@/features/kitchen-queue/test-fixtures";
+import { makeSalesSummary } from "@/features/reports/test-fixtures";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -27,6 +29,12 @@ vi.mock("@/features/orders/api", () => ({
 
 vi.mock("@/features/kitchen-queue/api", () => ({
   fetchKitchenQueueSummary: vi.fn(),
+}));
+
+vi.mock("@/features/reports/api", () => ({
+  fetchSalesSummary: vi.fn(),
+  fetchSalesByDay: vi.fn(),
+  fetchTopItems: vi.fn(),
 }));
 
 const user = {
@@ -55,6 +63,7 @@ describe("DashboardPage", () => {
     useAuthStore.setState({ status: "authed", token: "tok", user, sessionNotice: null });
     vi.mocked(ordersApi.fetchOrders).mockResolvedValue(makeOrdersPage());
     vi.mocked(kitchenApi.fetchKitchenQueueSummary).mockResolvedValue(makeKitchenQueueSummary());
+    vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(makeSalesSummary());
   });
 
   it("renders the signed-in user's and merchant's name from the live /auth/me query", async () => {
@@ -197,7 +206,30 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("1m 0s")).toBeInTheDocument();
   });
 
-  it("New order and Kitchen queue quick actions link to the right routes", async () => {
+  it("shows revenue today from sales-summary, filtered to today, and links to /app/reports", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(
+      makeSalesSummary({ net_cents: 12345, net_formatted: "₱123.45" }),
+    );
+
+    renderDashboard();
+
+    const link = await screen.findByRole("link", { name: /Revenue today/ });
+    expect(link).toHaveAttribute("href", "/app/reports");
+    expect(await screen.findByText("₱123.45")).toBeInTheDocument();
+  });
+
+  it("a failing revenue-today card shows its own error without breaking the rest of the page", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    vi.mocked(reportsApi.fetchSalesSummary).mockRejectedValue(new Error("Couldn't load revenue."));
+
+    renderDashboard();
+
+    expect(await screen.findByText("Couldn't load revenue.")).toBeInTheDocument();
+    expect(await screen.findByText("View all orders")).toBeInTheDocument();
+  });
+
+  it("New order and Queue quick actions link to the right routes", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
 
     renderDashboard();
@@ -206,7 +238,7 @@ describe("DashboardPage", () => {
       "href",
       "/app/pos",
     );
-    expect(screen.getByRole("link", { name: /Kitchen queue/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^Queue$/ })).toHaveAttribute(
       "href",
       "/app/kitchen-queue",
     );
