@@ -128,9 +128,19 @@ export function CloseCashDrawerDialog({
               />
             </dl>
 
-            <DialogFooter className="gap-2 sm:justify-between">
+            <DialogFooter className="flex-wrap gap-2 sm:justify-between">
               <Button variant="outline" onClick={close}>
                 Close
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const id = result.id;
+                  close();
+                  navigate(`/app/cash-drawer/sessions/${id}/report`);
+                }}
+              >
+                Print shift report
               </Button>
               <Button
                 onClick={() => {

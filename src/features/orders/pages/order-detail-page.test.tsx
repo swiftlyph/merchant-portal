@@ -299,4 +299,45 @@ describe("OrderDetailPage permission gating", () => {
     expect(screen.queryByRole("button", { name: "Complete" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Void" })).not.toBeInTheDocument();
   });
+
+  it("shows Print receipt with orders.view", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 3,
+        name: "Viewer",
+        email: "viewer@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: ["orders.view"],
+      },
+      sessionNotice: null,
+    });
+
+    renderDetailPage();
+
+    expect(await screen.findByRole("link", { name: /Print receipt/ })).toBeInTheDocument();
+  });
+
+  it("hides Print receipt without orders.view", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 4,
+        name: "No Access",
+        email: "noaccess@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [],
+      },
+      sessionNotice: null,
+    });
+
+    renderDetailPage();
+
+    await screen.findByText("ORD-000001");
+    expect(screen.queryByRole("link", { name: /Print receipt/ })).not.toBeInTheDocument();
+  });
 });

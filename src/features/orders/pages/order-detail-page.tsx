@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api/client";
 import { useCan } from "@/features/auth/store";
 import { describePermissionDenied, isPermissionDenied } from "@/features/auth/permission-error";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { IconPrinter } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -42,6 +43,7 @@ export function OrderDetailPage() {
   const [voidOpen, setVoidOpen] = useState(false);
   const canComplete = useCan("orders.complete");
   const canVoid = useCan("orders.void");
+  const canViewReceipt = useCan("orders.view");
 
   if (isPending) {
     return (
@@ -117,9 +119,19 @@ export function OrderDetailPage() {
           </div>
         </div>
 
-        {order.status === "pending" && (canVoid || canComplete) && (
-          <div className="flex gap-2">
-            {/* Absent, not disabled, when the permission is missing — same convention as the team table's owner-row rule. */}
+        <div className="flex gap-2">
+          {/* Absent, not disabled, when the permission is missing — same convention as the team table's owner-row rule. */}
+          {canViewReceipt && (
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/app/orders/${order.id}/receipt`}>
+                <IconPrinter />
+                Print receipt
+              </Link>
+            </Button>
+          )}
+
+          {order.status === "pending" && (canVoid || canComplete) && (
+            <>
             {canVoid && (
               <AlertDialog open={voidOpen} onOpenChange={setVoidOpen}>
                 {/*
@@ -184,8 +196,9 @@ export function OrderDetailPage() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <Table>

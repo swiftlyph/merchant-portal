@@ -1,4 +1,4 @@
-import type { Order, OrdersPage } from "./types";
+import type { Order, OrdersPage, Receipt } from "./types";
 import { formatCents } from "@/lib/money";
 
 export function makeOrder(overrides: Partial<Order> = {}): Order {
@@ -42,6 +42,58 @@ export function makeOrder(overrides: Partial<Order> = {}): Order {
         add_ons: [],
       },
     ],
+    ...overrides,
+  };
+}
+
+export function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
+  return {
+    merchant: {
+      name: "Merchant One",
+      legal_name: "Merchant One Food Corp.",
+      address_line1: "123 Rizal St",
+      address_line2: "Unit 4",
+      city: "Cebu City",
+      postal_code: "6000",
+      phone: "+63 917 000 0000",
+      tax_identifier: "123-456-789-000",
+      receipt_header: "Thank you for visiting!",
+      receipt_footer: "No refunds after 24 hours.",
+      ...overrides.merchant,
+    },
+    order: {
+      id: 1,
+      order_number: "ORD-000001",
+      status: "completed",
+      created_at: "2026-09-10T06:12:00.000Z",
+      voided: false,
+      voided_at: null,
+      cashier_name: "Alice Cashier",
+      lines: [
+        {
+          product_name: "Iced Latte",
+          quantity: 1,
+          unit_price_cents: 15000,
+          unit_price_formatted: formatCents(15000),
+          line_total_cents: 15000,
+          line_total_formatted: formatCents(15000),
+          add_ons: [],
+        },
+      ],
+      subtotal_cents: 15000,
+      subtotal_formatted: formatCents(15000),
+      discount_cents: 0,
+      discount_formatted: formatCents(0),
+      total_cents: 15000,
+      total_formatted: formatCents(15000),
+      payment_method: "cash",
+      cash_cents: null,
+      cash_formatted: null,
+      gcash_cents: null,
+      gcash_formatted: null,
+      ...overrides.order,
+    },
+    generated_at: "2026-09-10T14:32:00.000Z",
     ...overrides,
   };
 }

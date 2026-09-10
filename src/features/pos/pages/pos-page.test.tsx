@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PosPage } from "./pos-page";
 import * as posApi from "../api";
@@ -13,11 +14,16 @@ vi.mock("../api", () => ({
   checkout: vi.fn(),
 }));
 
+// SuccessDialog (F11) navigates to the receipt print view on "Print
+// receipt", so this page needs a Router context even though POS never
+// otherwise routes anywhere itself.
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <PosPage />
+      <MemoryRouter initialEntries={["/app/pos"]}>
+        <PosPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
