@@ -26,6 +26,10 @@ function pesosToCents(value: string): number {
   return Math.round(n * 100);
 }
 
+function centsToPesosInput(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
 /**
  * The payment step — cash / gcash / split, then Charge. Owns nothing about
  * the idempotency key itself (that lives in useCheckout, scoped to the
@@ -48,6 +52,11 @@ export function PaymentDialog({
   const [cashInput, setCashInput] = useState("");
   const [gcashInput, setGcashInput] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Split payment: typing in one field auto-fills the other with whatever's
+  // left of the total, so the cashier only ever has to type one number.
+  // Editing the auto-filled field by hand stops it from being overwritten.
+  const [gcashAutoFilled, setGcashAutoFilled] = useState(true);
+  const [cashAutoFilled, setCashAutoFilled] = useState(true);
 
   // isPending from the mutation is the source of truth for disabling the
   // button, but it only updates on the NEXT render — a synchronous double
@@ -71,6 +80,26 @@ export function PaymentDialog({
     setMethod("cash");
     setCashInput("");
     setGcashInput("");
+    setGcashAutoFilled(true);
+    setCashAutoFilled(true);
+  }
+
+  function handleCashChange(value: string) {
+    setCashInput(value);
+    setCashAutoFilled(false);
+    if (gcashAutoFilled) {
+      const remainder = total - pesosToCents(value);
+      setGcashInput(remainder > 0 ? centsToPesosInput(remainder) : "");
+    }
+  }
+
+  function handleGcashChange(value: string) {
+    setGcashInput(value);
+    setGcashAutoFilled(false);
+    if (cashAutoFilled) {
+      const remainder = total - pesosToCents(value);
+      setCashInput(remainder > 0 ? centsToPesosInput(remainder) : "");
+    }
   }
 
   async function submit() {
@@ -149,7 +178,7 @@ export function PaymentDialog({
                 step="0.01"
                 inputMode="decimal"
                 value={cashInput}
-                onChange={(e) => setCashInput(e.target.value)}
+                onChange={(e) => handleCashChange(e.target.value)}
                 className="h-10"
               />
             </div>
@@ -164,7 +193,7 @@ export function PaymentDialog({
                 step="0.01"
                 inputMode="decimal"
                 value={gcashInput}
-                onChange={(e) => setGcashInput(e.target.value)}
+                onChange={(e) => handleGcashChange(e.target.value)}
                 className="h-10"
               />
             </div>

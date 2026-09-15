@@ -22,6 +22,10 @@ function pesosToCents(value: string): number {
   return Math.round(n * 100);
 }
 
+function centsToPesosInput(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
 /**
  * CLOSE CASH DRAWER (rule 8) — the highest-stakes interaction on this
  * screen. Variance is computed live, client-side, purely as
@@ -169,9 +173,21 @@ export function CloseCashDrawerDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="close-counted-cash" className="text-xs text-muted-foreground">
-                  Counted cash
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="close-counted-cash" className="text-xs text-muted-foreground">
+                    Counted cash
+                  </label>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-primary hover:underline"
+                    onClick={() => {
+                      setCountedInput(centsToPesosInput(expectedCents));
+                      setConfirmingVariance(false);
+                    }}
+                  >
+                    Matches expected
+                  </button>
+                </div>
                 <Input
                   id="close-counted-cash"
                   type="number"

@@ -135,7 +135,14 @@ describe("PosPage", () => {
     await user.click(within(dialog).getByRole("tab", { name: "Split" }));
     const chargeBtn = within(dialog).getByRole("button", { name: /^Charge/ });
 
+    // Typing Cash auto-fills GCash with the remainder of the total.
     await user.type(within(dialog).getByLabelText("Cash"), "50");
+    expect(within(dialog).getByLabelText("GCash")).toHaveValue(40);
+    expect(within(dialog).getByText("Exact — ready to charge.")).toBeInTheDocument();
+    expect(chargeBtn).toBeEnabled();
+
+    // Editing GCash by hand overrides the auto-fill and stops it from following.
+    await user.clear(within(dialog).getByLabelText("GCash"));
     await user.type(within(dialog).getByLabelText("GCash"), "30");
     expect(within(dialog).getByText("₱10.00 remaining")).toBeInTheDocument();
     expect(chargeBtn).toBeDisabled();
@@ -144,6 +151,21 @@ describe("PosPage", () => {
     await user.type(within(dialog).getByLabelText("GCash"), "40");
     expect(within(dialog).getByText("Exact — ready to charge.")).toBeInTheDocument();
     expect(chargeBtn).toBeEnabled();
+  });
+
+  it("split payment: typing GCash first auto-fills Cash with the remainder", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ })); // ₱90.00
+    await user.click(screen.getByRole("button", { name: /^Charge ₱/ }));
+    const dialog = await screen.findByRole("dialog");
+
+    await user.click(within(dialog).getByRole("tab", { name: "Split" }));
+
+    await user.type(within(dialog).getByLabelText("GCash"), "20");
+    expect(within(dialog).getByLabelText("Cash")).toHaveValue(70);
+    expect(within(dialog).getByText("Exact — ready to charge.")).toBeInTheDocument();
   });
 
   it("renders the server's split_mismatch 422 if the server rejects it anyway", async () => {
