@@ -2,14 +2,18 @@ import { api } from "@/lib/api/client";
 import type {
   Order,
   OrderAddOn,
+  OrderBeneficiary,
   OrderItem,
   OrdersFilters,
   OrdersPage,
+  OrderTax,
   Receipt,
   ReceiptAddOn,
+  ReceiptBeneficiary,
   ReceiptLine,
   ReceiptMerchant,
   ReceiptOrder,
+  ReceiptTax,
 } from "./types";
 
 /**
@@ -39,7 +43,48 @@ function normalizeItem(raw: Partial<OrderItem> | null | undefined): OrderItem {
     quantity: raw?.quantity ?? 0,
     line_total_cents: raw?.line_total_cents ?? 0,
     line_total_formatted: raw?.line_total_formatted ?? "",
+    beneficiary_id: raw?.beneficiary_id ?? null,
+    discount_cents: raw?.discount_cents ?? 0,
+    discount_formatted: raw?.discount_formatted ?? "",
+    payable_cents: raw?.payable_cents ?? raw?.line_total_cents ?? 0,
+    payable_formatted: raw?.payable_formatted ?? raw?.line_total_formatted ?? "",
     add_ons: Array.isArray(raw?.add_ons) ? raw.add_ons.map(normalizeAddOn) : [],
+  };
+}
+
+function normalizeOrderBeneficiary(
+  raw: Partial<OrderBeneficiary> | null | undefined,
+): OrderBeneficiary {
+  return {
+    id: raw?.id ?? 0,
+    type: raw?.type ?? "senior",
+    type_label: raw?.type_label ?? "",
+    name: raw?.name ?? "",
+    id_number: raw?.id_number ?? "",
+    discount_cents: raw?.discount_cents ?? 0,
+    discount_formatted: raw?.discount_formatted ?? "",
+    vat_exempt_sales_cents: raw?.vat_exempt_sales_cents ?? 0,
+    vat_exempt_sales_formatted: raw?.vat_exempt_sales_formatted ?? "",
+  };
+}
+
+/** Defaults to a non-VAT shape when the block is entirely missing (older payload/test fixture) — the safer of the two to assume when unsure, since it renders no VAT figures at all rather than fabricated ones. */
+function normalizeOrderTax(raw: Partial<OrderTax> | null | undefined): OrderTax {
+  return {
+    vat_registered: raw?.vat_registered ?? false,
+    vat_rate_bps: raw?.vat_rate_bps ?? 0,
+    vatable_sales_cents: raw?.vatable_sales_cents ?? 0,
+    vatable_sales_formatted: raw?.vatable_sales_formatted ?? "",
+    vat_cents: raw?.vat_cents ?? 0,
+    vat_formatted: raw?.vat_formatted ?? "",
+    vat_exempt_sales_cents: raw?.vat_exempt_sales_cents ?? 0,
+    vat_exempt_sales_formatted: raw?.vat_exempt_sales_formatted ?? "",
+    nonvat_sales_cents: raw?.nonvat_sales_cents ?? 0,
+    nonvat_sales_formatted: raw?.nonvat_sales_formatted ?? "",
+    statutory_discount_cents: raw?.statutory_discount_cents ?? 0,
+    statutory_discount_formatted: raw?.statutory_discount_formatted ?? "",
+    promo_discount_cents: raw?.promo_discount_cents ?? 0,
+    promo_discount_formatted: raw?.promo_discount_formatted ?? "",
   };
 }
 
@@ -67,6 +112,10 @@ function normalizeOrder(raw: Partial<Order> | null | undefined): Order {
     created_at: raw?.created_at ?? "",
     updated_at: raw?.updated_at ?? "",
     items: Array.isArray(raw?.items) ? raw.items.map(normalizeItem) : [],
+    tax: normalizeOrderTax(raw?.tax),
+    beneficiaries: Array.isArray(raw?.beneficiaries)
+      ? raw.beneficiaries.map(normalizeOrderBeneficiary)
+      : [],
   };
 }
 
@@ -149,7 +198,57 @@ function normalizeReceiptLine(raw: Partial<ReceiptLine> | null | undefined): Rec
     unit_price_formatted: raw?.unit_price_formatted ?? "",
     line_total_cents: raw?.line_total_cents ?? 0,
     line_total_formatted: raw?.line_total_formatted ?? "",
+    discount_cents: raw?.discount_cents ?? 0,
+    discount_formatted: raw?.discount_formatted ?? "",
+    payable_cents: raw?.payable_cents ?? raw?.line_total_cents ?? 0,
+    payable_formatted: raw?.payable_formatted ?? raw?.line_total_formatted ?? "",
     add_ons: Array.isArray(raw?.add_ons) ? raw.add_ons.map(normalizeReceiptAddOn) : [],
+  };
+}
+
+function normalizeReceiptBeneficiary(
+  raw: Partial<ReceiptBeneficiary> | null | undefined,
+): ReceiptBeneficiary {
+  return {
+    type: raw?.type ?? "senior",
+    type_label: raw?.type_label ?? "",
+    name: raw?.name ?? "",
+    id_number: raw?.id_number ?? "",
+    discount_cents: raw?.discount_cents ?? 0,
+    discount_formatted: raw?.discount_formatted ?? "",
+  };
+}
+
+/**
+ * The receipt tax block is a discriminated union on the wire (see
+ * ReceiptTax's docblock) — normalized by branching on `vat_registered`
+ * rather than merging both shapes' fields, so a malformed/partial payload
+ * still produces one coherent shape a component can render without
+ * accidentally mixing VAT figures into a non-VAT note or vice versa.
+ * Defaults to the non-VAT shape when the block is entirely missing — the
+ * safer assumption, since it shows no fabricated VAT figures.
+ */
+function normalizeReceiptTax(raw: Record<string, unknown> | null | undefined): ReceiptTax {
+  if (raw?.vat_registered === true) {
+    return {
+      vat_registered: true,
+      vat_rate_bps: typeof raw.vat_rate_bps === "number" ? raw.vat_rate_bps : 0,
+      vatable_sales_cents: typeof raw.vatable_sales_cents === "number" ? raw.vatable_sales_cents : 0,
+      vatable_sales_formatted: typeof raw.vatable_sales_formatted === "string" ? raw.vatable_sales_formatted : "",
+      vat_cents: typeof raw.vat_cents === "number" ? raw.vat_cents : 0,
+      vat_formatted: typeof raw.vat_formatted === "string" ? raw.vat_formatted : "",
+      vat_exempt_sales_cents: typeof raw.vat_exempt_sales_cents === "number" ? raw.vat_exempt_sales_cents : 0,
+      vat_exempt_sales_formatted:
+        typeof raw.vat_exempt_sales_formatted === "string" ? raw.vat_exempt_sales_formatted : "",
+    };
+  }
+
+  return {
+    vat_registered: false,
+    non_vat_note:
+      typeof raw?.non_vat_note === "string" ? raw.non_vat_note : "This is a NON-VAT registered sale.",
+    nonvat_sales_cents: typeof raw?.nonvat_sales_cents === "number" ? raw.nonvat_sales_cents : 0,
+    nonvat_sales_formatted: typeof raw?.nonvat_sales_formatted === "string" ? raw.nonvat_sales_formatted : "",
   };
 }
 
@@ -167,8 +266,16 @@ function normalizeReceiptOrder(raw: Partial<ReceiptOrder> | null | undefined): R
     subtotal_formatted: raw?.subtotal_formatted ?? "",
     discount_cents: raw?.discount_cents ?? 0,
     discount_formatted: raw?.discount_formatted ?? "",
+    statutory_discount_cents: raw?.statutory_discount_cents ?? 0,
+    statutory_discount_formatted: raw?.statutory_discount_formatted ?? "",
+    promo_discount_cents: raw?.promo_discount_cents ?? raw?.discount_cents ?? 0,
+    promo_discount_formatted: raw?.promo_discount_formatted ?? "",
     total_cents: raw?.total_cents ?? 0,
     total_formatted: raw?.total_formatted ?? "",
+    tax: normalizeReceiptTax(raw?.tax),
+    beneficiaries: Array.isArray(raw?.beneficiaries)
+      ? raw.beneficiaries.map(normalizeReceiptBeneficiary)
+      : [],
     payment_method: raw?.payment_method ?? "cash",
     cash_cents: raw?.cash_cents ?? null,
     cash_formatted: raw?.cash_formatted ?? null,

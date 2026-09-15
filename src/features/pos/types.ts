@@ -28,9 +28,30 @@ export interface CheckoutAddOn {
   price_cents: number;
 }
 
+export type BeneficiaryType = "senior" | "pwd";
+
+/**
+ * F13/P10: one senior/PWD claim on this checkout. Required fields per
+ * CheckoutRequest's validation (App\Domains\Orders\Http\Requests\
+ * CheckoutRequest) — a blank name or id_number is a 422 validation_failed,
+ * and a beneficiary with no line pointing at it (see CheckoutItem.beneficiary
+ * below) is a 422 beneficiary_unused.
+ */
+export interface CheckoutBeneficiary {
+  type: BeneficiaryType;
+  name: string;
+  id_number: string;
+}
+
 export interface CheckoutItem {
   product_id: number;
   quantity: number;
+  /**
+   * F13/P10: an INDEX into the request's own `beneficiaries` array (NOT a
+   * database id — there is no id yet, this is the checkout REQUEST) —
+   * omitted or undefined for an ordinary line belonging to nobody.
+   */
+  beneficiary?: number;
   add_ons?: CheckoutAddOn[];
 }
 
@@ -41,7 +62,10 @@ export interface CheckoutRequest {
   /** Split only — both required, both > 0, and cash + gcash must equal the server-computed total exactly. */
   cash_cents?: number;
   gcash_cents?: number;
+  /** F13/P10: this is the PROMO discount specifically — applied AFTER any senior/PWD statutory discount. Field name unchanged from before P10 so existing callers keep working; only its meaning narrowed. */
   discount_cents?: number;
+  /** F13/P10: the senior citizens/PWDs on this order, if any. Omit entirely (or send []) for an ordinary checkout — this field is purely additive. */
+  beneficiaries?: CheckoutBeneficiary[];
   items: CheckoutItem[];
 }
 

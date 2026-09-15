@@ -21,4 +21,31 @@ export interface CartLine {
   currency: string;
   quantity: number;
   add_ons: CartAddOn[];
+  /**
+   * F13/P10: which CartBeneficiary (by its localId) this line's WHOLE
+   * quantity belongs to, if any — null for an ordinary line. Whole-line
+   * only, never a per-unit split: the backend's own beneficiary
+   * assignment is per line, not per unit, and there is no UI for
+   * "2 of these 3 lattes are the senior's" (see CartBeneficiary's
+   * docblock and the F13 spec: quantity splits are not required).
+   */
+  beneficiaryLocalId: string | null;
+}
+
+export type CartBeneficiaryType = "senior" | "pwd";
+
+/**
+ * F13/P10: a senior/PWD claim added to the cart, before checkout. Purely
+ * client-side state — becomes a `CheckoutBeneficiary` (see pos/types.ts)
+ * only at the moment a request is built, and the line-level
+ * `beneficiaryLocalId` above is resolved to a request-array INDEX then,
+ * never stored as one here (an index would silently point at the wrong
+ * person the moment a beneficiary earlier in the list is removed).
+ */
+export interface CartBeneficiary {
+  /** Local-only id (crypto.randomUUID) — stable identity independent of the beneficiary's position in the list, which is what lets a line's assignment survive another beneficiary being added/removed anywhere in the cart. */
+  localId: string;
+  type: CartBeneficiaryType;
+  name: string;
+  id_number: string;
 }

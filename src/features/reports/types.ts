@@ -28,10 +28,26 @@ export interface SalesSummary {
 
   gross_cents: number;
   gross_formatted: string;
+  /** Unchanged meaning (F13/P10): statutory + promo combined. */
   discount_cents: number;
   discount_formatted: string;
   net_cents: number;
   net_formatted: string;
+
+  /** F13/P10: additive. The two causes that sum to discount_cents above. */
+  statutory_discount_cents: number;
+  statutory_discount_formatted: string;
+  promo_discount_cents: number;
+  promo_discount_formatted: string;
+  /** F13/P10: additive. All four zero for a range with no VAT-registered orders — see date-range VAT-presence helpers in this feature for when to show a VAT summary row at all. */
+  vatable_sales_cents: number;
+  vatable_sales_formatted: string;
+  vat_cents: number;
+  vat_formatted: string;
+  vat_exempt_sales_cents: number;
+  vat_exempt_sales_formatted: string;
+  nonvat_sales_cents: number;
+  nonvat_sales_formatted: string;
 
   by_payment_method: Record<PaymentMethodBucketKey, PaymentMethodBucket>;
 

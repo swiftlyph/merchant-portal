@@ -44,8 +44,34 @@ export function ZReportContent({ report }: { report: ZReport }) {
         <Row label="Voided" value={String(sales.voided_count)} />
         <Row label="Total sales" value={sales.gross_formatted} />
         <Row label="Discounts" value={`-${sales.discounts_formatted}`} />
+        {/* F13/P10: the two causes behind Discounts above — shown only when either applies, so a shift with no beneficiary orders keeps this exactly as it looked before this phase. */}
+        {sales.statutory_discount_cents > 0 && (
+          <Row label="  Senior/PWD" value={`-${sales.statutory_discount_formatted}`} />
+        )}
+        {sales.promo_discount_cents > 0 && (
+          <Row label="  Promo" value={`-${sales.promo_discount_formatted}`} />
+        )}
         <Row label="Net" value={sales.net_formatted} emphasize />
       </div>
+
+      {/*
+        F13/P10: omitted ENTIRELY for a shift with no VAT-registered
+        sales — never shown with zeroed-out figures. `nonvat_sales_cents`
+        covering the whole gross is exactly that case; a mixed shift
+        (unlikely — one drawer belongs to one merchant, which is
+        VAT-registered or not — but the fields are additive on the
+        report regardless) still renders whatever nonzero figures exist.
+      */}
+      {(sales.vatable_sales_cents > 0 ||
+        sales.vat_cents > 0 ||
+        sales.vat_exempt_sales_cents > 0) && (
+        <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">
+          <div className="text-center font-bold">VAT summary</div>
+          <Row label="VATable sales" value={sales.vatable_sales_formatted} />
+          <Row label="VAT" value={sales.vat_formatted} />
+          <Row label="VAT-exempt sales" value={sales.vat_exempt_sales_formatted} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">
         <div className="text-center font-bold">Payment breakdown</div>

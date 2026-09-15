@@ -131,6 +131,129 @@ describe("ReceiptPage", () => {
   });
 });
 
+describe("ReceiptPage — F13/P10 tax & senior/PWD discount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.print = vi.fn();
+  });
+
+  it("prints the VAT breakdown with real legal terms for a VAT-registered order", async () => {
+    vi.mocked(ordersApi.fetchReceipt).mockResolvedValue(
+      makeReceipt({
+        order: {
+          ...makeReceipt().order,
+          tax: {
+            vat_registered: true,
+            vat_rate_bps: 1200,
+            vatable_sales_cents: 12500,
+            vatable_sales_formatted: "₱125.00",
+            vat_cents: 1500,
+            vat_formatted: "₱15.00",
+            vat_exempt_sales_cents: 0,
+            vat_exempt_sales_formatted: "₱0.00",
+          },
+        },
+      }),
+    );
+
+    renderReceiptPage();
+
+    expect(await screen.findByText("VATable sales")).toBeInTheDocument();
+    expect(screen.getByText("₱125.00")).toBeInTheDocument();
+    expect(screen.getByText("VAT (12%)")).toBeInTheDocument();
+    expect(screen.getByText("VAT-exempt sales")).toBeInTheDocument();
+    expect(screen.queryByText(/Non-VAT/)).not.toBeInTheDocument();
+  });
+
+  it("prints the Non-VAT note and no VAT lines for a non-VAT order", async () => {
+    vi.mocked(ordersApi.fetchReceipt).mockResolvedValue(
+      makeReceipt({
+        order: {
+          ...makeReceipt().order,
+          tax: {
+            vat_registered: false,
+            non_vat_note: "This is a NON-VAT registered sale.",
+            nonvat_sales_cents: 15000,
+            nonvat_sales_formatted: "₱150.00",
+          },
+        },
+      }),
+    );
+
+    renderReceiptPage();
+
+    expect(await screen.findByText("This is a NON-VAT registered sale.")).toBeInTheDocument();
+    expect(screen.queryByText("VATable sales")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^VAT \(/)).not.toBeInTheDocument();
+  });
+
+  it("prints each beneficiary's name, type, ID, and discount", async () => {
+    vi.mocked(ordersApi.fetchReceipt).mockResolvedValue(
+      makeReceipt({
+        order: {
+          ...makeReceipt().order,
+          beneficiaries: [
+            {
+              type: "senior",
+              type_label: "Senior Citizen",
+              name: "Lola Remedios",
+              id_number: "SC-2020-0001",
+              discount_cents: 2800,
+              discount_formatted: "₱28.00",
+            },
+          ],
+        },
+      }),
+    );
+
+    renderReceiptPage();
+
+    expect(await screen.findByText("Senior/PWD discount")).toBeInTheDocument();
+    expect(screen.getByText(/Lola Remedios/)).toBeInTheDocument();
+    expect(screen.getByText(/Senior Citizen/)).toBeInTheDocument();
+    expect(screen.getByText(/SC-2020-0001/)).toBeInTheDocument();
+  });
+
+  it("prints nothing extra for an ordinary receipt with no beneficiaries", async () => {
+    vi.mocked(ordersApi.fetchReceipt).mockResolvedValue(makeReceipt());
+
+    renderReceiptPage();
+
+    await screen.findByText("ORD-000001");
+    expect(screen.queryByText("Senior/PWD discount")).not.toBeInTheDocument();
+  });
+
+  it("prints a line's own statutory discount only when it has one", async () => {
+    vi.mocked(ordersApi.fetchReceipt).mockResolvedValue(
+      makeReceipt({
+        order: {
+          ...makeReceipt().order,
+          lines: [
+            {
+              product_name: "Cafe Latte (16oz)",
+              quantity: 1,
+              unit_price_cents: 14000,
+              unit_price_formatted: "₱140.00",
+              line_total_cents: 14000,
+              line_total_formatted: "₱140.00",
+              discount_cents: 2800,
+              discount_formatted: "₱28.00",
+              payable_cents: 11200,
+              payable_formatted: "₱112.00",
+              add_ons: [],
+            },
+          ],
+        },
+      }),
+    );
+
+    renderReceiptPage();
+
+    await screen.findByText(/Cafe Latte \(16oz\)/);
+    expect(screen.getByText("-₱28.00")).toBeInTheDocument();
+  });
+});
+
 function formatted(cents: number): string {
   return new Intl.NumberFormat("en-PH", {
     style: "currency",

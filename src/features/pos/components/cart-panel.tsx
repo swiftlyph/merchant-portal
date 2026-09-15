@@ -1,8 +1,11 @@
-import { IconShoppingCartOff } from "@tabler/icons-react";
+import { useState } from "react";
+import { IconAlertTriangle, IconShoppingCartOff } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
 import { CartLineItem } from "./cart-line-item";
+import { BeneficiaryDialog } from "./beneficiary-dialog";
+import { BeneficiaryList } from "./beneficiary-list";
 import { itemCount, subtotalCents, totalCents } from "../cart-math";
 import { useCartStore } from "../use-cart";
 
@@ -31,11 +34,24 @@ export function CartPanel({
   /** Product ids the last checkout attempt rejected as no-longer-available — flagged on their cart line. */
   unavailableProductIds?: number[];
 }) {
-  const { lines, discount_cents, setDiscountCents, clear } = useCartStore();
+  const { lines, discount_cents, setDiscountCents, clear, beneficiaries, addBeneficiary } =
+    useCartStore();
+  const [beneficiaryDialogOpen, setBeneficiaryDialogOpen] = useState(false);
   const currency = lines[0]?.currency ?? "PHP";
   const subtotal = subtotalCents(lines);
   const total = totalCents(lines, discount_cents);
   const count = itemCount(lines);
+
+  // F13/P10: mirrors the backend's own `beneficiary_unused` 422
+  // client-side — a beneficiary with no line assigned to them cannot be
+  // confirmed into the order (see BeneficiaryList, which also flags this
+  // inline per-beneficiary). The server still enforces this
+  // independently regardless (see PaymentDialog's error handling), since
+  // a beneficiary could in principle lose their last line between this
+  // render and the request going out.
+  const hasUnusedBeneficiary = beneficiaries.some(
+    (b) => !lines.some((line) => line.beneficiaryLocalId === b.localId),
+  );
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -66,6 +82,16 @@ export function CartPanel({
       )}
 
       {lines.length > 0 && (
+        <BeneficiaryList onAddClick={() => setBeneficiaryDialogOpen(true)} />
+      )}
+
+      <BeneficiaryDialog
+        open={beneficiaryDialogOpen}
+        onOpenChange={setBeneficiaryDialogOpen}
+        onAdd={addBeneficiary}
+      />
+
+      {lines.length > 0 && (
         <div className="flex flex-col gap-2 border-t border-border pt-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
@@ -92,6 +118,10 @@ export function CartPanel({
                 />
               </div>
             </div>
+            {/* F13/P10: this discount is applied AFTER any senior/PWD discount above, off what's left of the subtotal. */}
+            <p className="text-right text-xs text-muted-foreground">
+              Applies after any senior/PWD discount.
+            </p>
 
             {subtotal > 0 && (
               <div className="flex flex-wrap justify-end gap-1.5">
@@ -123,7 +153,20 @@ export function CartPanel({
             <span className="tabular-nums">{formatCents(total, currency)}</span>
           </div>
 
-          <Button type="button" size="lg" className="h-14 text-base" onClick={onCheckout}>
+          {hasUnusedBeneficiary && (
+            <div className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+              <IconAlertTriangle className="size-4 shrink-0" />
+              Assign an item to every senior/PWD discount before charging.
+            </div>
+          )}
+
+          <Button
+            type="button"
+            size="lg"
+            className="h-14 text-base"
+            onClick={onCheckout}
+            disabled={hasUnusedBeneficiary}
+          >
             Charge {formatCents(total, currency)}
           </Button>
         </div>

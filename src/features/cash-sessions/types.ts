@@ -201,10 +201,25 @@ export interface ZReportSales {
   voided_count: number;
   gross_cents: number;
   gross_formatted: string;
+  /** Unchanged meaning (F13/P10): statutory + promo combined. Plural field name, unlike the receipt's singular `discount_cents` — see that type's docblock. */
   discounts_cents: number;
   discounts_formatted: string;
   net_cents: number;
   net_formatted: string;
+  /** F13/P10: additive. The two causes that sum to discounts_cents above. */
+  statutory_discount_cents: number;
+  statutory_discount_formatted: string;
+  promo_discount_cents: number;
+  promo_discount_formatted: string;
+  /** F13/P10: additive. All four zero for a shift with no VAT-registered sales. */
+  vatable_sales_cents: number;
+  vatable_sales_formatted: string;
+  vat_cents: number;
+  vat_formatted: string;
+  vat_exempt_sales_cents: number;
+  vat_exempt_sales_formatted: string;
+  nonvat_sales_cents: number;
+  nonvat_sales_formatted: string;
   by_payment_method: {
     cash: ZReportPaymentBreakdown;
     gcash: ZReportPaymentBreakdown;

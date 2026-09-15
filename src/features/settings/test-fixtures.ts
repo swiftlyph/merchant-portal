@@ -16,6 +16,7 @@ export function makeProfile(overrides: Partial<MerchantProfile> = {}): MerchantP
     receipt_header: "Merchant One",
     receipt_footer: "Thank you for your order!",
     timezone: "Asia/Manila",
+    vat_registered: false,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-09-10T00:00:00.000Z",
     ...overrides,

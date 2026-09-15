@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { IconAlertTriangle, IconChevronDown, IconMinus, IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconChevronDown, IconMinus, IconPlus, IconTrash, IconUserCheck } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCents } from "@/lib/money";
 import { AddOnEditor } from "./add-on-editor";
-import { lineTotalCents } from "../cart-math";
+import { estimatedLineDiscountCents, lineTotalCents } from "../cart-math";
 import { useCartStore } from "../use-cart";
 import type { CartLine } from "../cart-types";
+
+/** The value the "no beneficiary" option carries in the Select below — "" rather than a real localId, since Radix's Select can't represent an empty-string item value as a distinct selectable option otherwise. */
+const NONE_VALUE = "__none__";
 
 export function CartLineItem({
   line,
@@ -15,8 +19,12 @@ export function CartLineItem({
   /** True when the last checkout attempt rejected this product as no-longer-available. */
   unavailable?: boolean;
 }) {
-  const { setQuantity, removeLine, addAddOn, removeAddOn } = useCartStore();
+  const { setQuantity, removeLine, addAddOn, removeAddOn, beneficiaries, setLineBeneficiary } =
+    useCartStore();
   const [addOnsOpen, setAddOnsOpen] = useState(false);
+
+  const assignedBeneficiary = beneficiaries.find((b) => b.localId === line.beneficiaryLocalId);
+  const estimatedDiscountCents = estimatedLineDiscountCents(line);
 
   return (
     <li
@@ -99,6 +107,45 @@ export function CartLineItem({
           onAdd={(addOn) => addAddOn(line.localId, addOn)}
           onRemove={(addOnLocalId) => removeAddOn(line.localId, addOnLocalId)}
         />
+      )}
+
+      {/*
+        F13/P10: assigns this WHOLE line to one senior/PWD claim, or back
+        to nobody ("None") — never a per-unit split (see
+        CartLine.beneficiaryLocalId's docblock). Rendered only once at
+        least one beneficiary exists on the order — with none added yet,
+        there is nothing to assign to, so the control would just be a
+        disabled no-op taking up space on every line.
+      */}
+      {beneficiaries.length > 0 && (
+        <div className="flex items-center justify-between gap-2 border-t border-dashed border-border pt-2">
+          <Select
+            value={line.beneficiaryLocalId ?? NONE_VALUE}
+            onValueChange={(v) => setLineBeneficiary(line.localId, v === NONE_VALUE ? null : v)}
+          >
+            <SelectTrigger
+              size="sm"
+              aria-label={`Assign ${line.product_name} to a senior/PWD discount`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE_VALUE}>No discount</SelectItem>
+              {beneficiaries.map((beneficiary) => (
+                <SelectItem key={beneficiary.localId} value={beneficiary.localId}>
+                  {beneficiary.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {assignedBeneficiary && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <IconUserCheck className="size-3.5 shrink-0" />
+              Est. −{formatCents(estimatedDiscountCents, line.currency)}
+            </span>
+          )}
+        </div>
       )}
     </li>
   );

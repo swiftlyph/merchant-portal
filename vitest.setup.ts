@@ -51,3 +51,16 @@ if (!window.IntersectionObserver) {
     }
   } as unknown as typeof IntersectionObserver;
 }
+
+// jsdom doesn't implement ResizeObserver — Radix's Switch (F13/P10, the
+// VAT-registered toggle on Settings → Profile) measures its own thumb via
+// @radix-ui/react-use-size, which constructs one on mount. A no-op stub is
+// enough: no test here asserts on the thumb's measured size, only on the
+// Switch's checked state.
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}

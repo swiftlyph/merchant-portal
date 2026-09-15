@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -16,7 +17,14 @@ import { useUnsavedChangesGuard } from "../use-unsaved-changes-guard";
 import { describeProfileError } from "../errors";
 import type { MerchantProfile, UpdateMerchantProfileRequest } from "../types";
 
-type FormValues = { [K in keyof Required<UpdateMerchantProfileRequest>]: string };
+/**
+ * Every text field on this form, kept string-mapped so a controlled
+ * <Input> always has a defined value. `vat_registered` (F13/P10) is
+ * tracked as its own boolean alongside this object rather than folded in
+ * here — it's a Switch, not text, and stringifying/parsing a boolean
+ * through this map would only add a conversion with no upside.
+ */
+type FormValues = { [K in keyof Required<Omit<UpdateMerchantProfileRequest, "vat_registered">>]: string };
 
 function toFormValues(profile: MerchantProfile): FormValues {
   return {
@@ -33,10 +41,14 @@ function toFormValues(profile: MerchantProfile): FormValues {
   };
 }
 
-/** Empty strings round-trip as null — the backend fields are all nullable, never required. */
-function toRequest(values: FormValues): UpdateMerchantProfileRequest {
+/** Empty strings round-trip as null — the backend text fields are all nullable, never required. `vat_registered` rides alongside, not through this map (see FormValues). */
+function toRequest(values: FormValues, vatRegistered: boolean): UpdateMerchantProfileRequest {
   const entries = Object.entries(values) as [keyof FormValues, string][];
-  return Object.fromEntries(entries.map(([key, value]) => [key, value.trim() ? value : null]));
+  const request: UpdateMerchantProfileRequest = Object.fromEntries(
+    entries.map(([key, value]) => [key, value.trim() ? value : null]),
+  );
+  request.vat_registered = vatRegistered;
+  return request;
 }
 
 function valuesEqual(a: FormValues, b: FormValues): boolean {
@@ -67,6 +79,12 @@ export function ProfilePage() {
 
   const [values, setValues] = useState<FormValues | null>(null);
   const [savedValues, setSavedValues] = useState<FormValues | null>(null);
+  // F13/P10: tracked separately from `values` (see FormValues' docblock) —
+  // "saved" here means "as last returned by the server", matching
+  // savedValues' role for the text fields, so isDirty below sees a VAT
+  // toggle the same way it sees an edited text field.
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [savedVatRegistered, setSavedVatRegistered] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ApiFieldErrors>({});
   const [formAlert, setFormAlert] = useState<string | null>(null);
   const inFlightRef = useRef(false);
@@ -76,9 +94,15 @@ export function ProfilePage() {
     const next = toFormValues(profile);
     setValues(next);
     setSavedValues(next);
+    setVatRegistered(profile.vat_registered);
+    setSavedVatRegistered(profile.vat_registered);
   }, [profile]);
 
-  const isDirty = Boolean(values && savedValues && !valuesEqual(values, savedValues));
+  const isDirty = Boolean(
+    values &&
+      savedValues &&
+      (!valuesEqual(values, savedValues) || vatRegistered !== savedVatRegistered),
+  );
   const blocker = useUnsavedChangesGuard(isDirty);
 
   function setField(key: keyof FormValues, value: string) {
@@ -92,10 +116,12 @@ export function ProfilePage() {
     setFormAlert(null);
     setFieldErrors({});
     try {
-      const updated = await mutateAsync(toRequest(values));
+      const updated = await mutateAsync(toRequest(values, vatRegistered));
       const next = toFormValues(updated);
       setValues(next);
       setSavedValues(next);
+      setVatRegistered(updated.vat_registered);
+      setSavedVatRegistered(updated.vat_registered);
       toast.success("Profile saved.");
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
@@ -282,6 +308,27 @@ export function ProfilePage() {
                     <FieldError errors={fieldErrors.contact_email?.map((message) => ({ message }))} />
                   </Field>
                 </FieldGroup>
+              </div>
+
+              <Separator />
+
+              <div className="flex flex-col gap-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Tax</h3>
+                <Field orientation="horizontal">
+                  <div className="flex flex-col gap-0.5">
+                    <FieldLabel htmlFor="vat_registered">VAT-registered</FieldLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Applies 12% VAT rules and the correct senior/PWD discount formula to new
+                      orders. Past orders are unaffected.
+                    </p>
+                  </div>
+                  <Switch
+                    id="vat_registered"
+                    checked={vatRegistered}
+                    onCheckedChange={setVatRegistered}
+                    disabled={fieldsDisabled}
+                  />
+                </Field>
               </div>
 
               <Separator />

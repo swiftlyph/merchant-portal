@@ -51,6 +51,17 @@ export function describeCheckoutError(error: unknown): CheckoutErrorInfo {
           requiresNewKey: false,
           canRetrySameKey: false,
         };
+      case "beneficiary_unused":
+        // F13/P10: the same rule CartPanel already checks client-side
+        // before Charge is even tappable — reached here only if a
+        // beneficiary lost its last assigned line in the moment between
+        // that check and the request going out (e.g. a race with another
+        // tap), so this is a defensive backstop, not the primary UX.
+        return {
+          message: "Assign at least one item to every senior/PWD discount before charging.",
+          requiresNewKey: false,
+          canRetrySameKey: false,
+        };
       case "split_mismatch":
         return {
           message: "Cash + GCash doesn't add up to the total. Fix the split amounts and retry.",

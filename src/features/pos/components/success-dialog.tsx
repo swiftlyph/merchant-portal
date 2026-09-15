@@ -43,6 +43,17 @@ export function SuccessDialog({
             <span className="text-sm text-muted-foreground">Order</span>
             <span className="text-3xl font-bold tracking-tight">{order.order_number}</span>
             <span className="mt-2 text-lg font-semibold tabular-nums">{order.total_formatted}</span>
+
+            {/* F13/P10: brief, server-figure confirmation of the discount(s) actually applied — this is the FINAL server figure, never the cart's "estimated" one. */}
+            {order.beneficiaries.length > 0 && (
+              <ul className="mt-2 flex flex-col items-center gap-0.5 text-sm text-muted-foreground">
+                {order.beneficiaries.map((beneficiary) => (
+                  <li key={beneficiary.id}>
+                    {beneficiary.name} — {beneficiary.discount_formatted} off
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 

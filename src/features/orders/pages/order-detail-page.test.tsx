@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { OrderDetailPage } from "./order-detail-page";
 import * as ordersApi from "../api";
 import { ApiError } from "@/lib/api/client";
-import { makeOrder } from "../test-fixtures";
+import { makeOrder, makeOrderBeneficiary, makeOrderTax } from "../test-fixtures";
 import { useAuthStore } from "@/features/auth/store";
 import { OWNER_PRESET, STAFF_PRESET } from "@/features/auth/permissions";
 
@@ -75,6 +75,11 @@ describe("OrderDetailPage", () => {
             quantity: 1,
             line_total_cents: 16500,
             line_total_formatted: "₱165.00",
+            beneficiary_id: null,
+            discount_cents: 0,
+            discount_formatted: "₱0.00",
+            payable_cents: 16500,
+            payable_formatted: "₱165.00",
             add_ons: [
               { id: 1, name: "Extra shot", price_cents: 2500, price_formatted: "₱25.00" },
             ],
@@ -339,5 +344,112 @@ describe("OrderDetailPage permission gating", () => {
 
     await screen.findByText("ORD-000001");
     expect(screen.queryByRole("link", { name: /Print receipt/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("OrderDetailPage — F13/P10 tax & senior/PWD discount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Merchant One",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
+  });
+
+  it("shows the VAT breakdown with real legal terms for a VAT-registered order", async () => {
+    vi.mocked(ordersApi.fetchOrder).mockResolvedValue(
+      makeOrder({
+        tax: makeOrderTax({
+          vat_registered: true,
+          vat_rate_bps: 1200,
+          vatable_sales_cents: 12500,
+          vatable_sales_formatted: "₱125.00",
+          vat_cents: 1500,
+          vat_formatted: "₱15.00",
+          vat_exempt_sales_cents: 0,
+          vat_exempt_sales_formatted: "₱0.00",
+        }),
+      }),
+    );
+
+    renderDetailPage();
+
+    expect(await screen.findByText("VAT breakdown")).toBeInTheDocument();
+    expect(screen.getByText("VATable sales")).toBeInTheDocument();
+    expect(screen.getByText("₱125.00")).toBeInTheDocument();
+    expect(screen.getByText("VAT (12%)")).toBeInTheDocument();
+    expect(screen.getByText("₱15.00")).toBeInTheDocument();
+    expect(screen.getByText("VAT-exempt sales")).toBeInTheDocument();
+    expect(screen.queryByText("Non-VAT sale.")).not.toBeInTheDocument();
+  });
+
+  it("shows the Non-VAT note and no VAT figures for a non-VAT order", async () => {
+    vi.mocked(ordersApi.fetchOrder).mockResolvedValue(makeOrder({ tax: makeOrderTax({ vat_registered: false }) }));
+
+    renderDetailPage();
+
+    expect(await screen.findByText("Non-VAT sale.")).toBeInTheDocument();
+    expect(screen.queryByText("VAT breakdown")).not.toBeInTheDocument();
+    expect(screen.queryByText("VATable sales")).not.toBeInTheDocument();
+  });
+
+  it("shows each beneficiary's name, ID, and discount", async () => {
+    vi.mocked(ordersApi.fetchOrder).mockResolvedValue(
+      makeOrder({
+        beneficiaries: [
+          makeOrderBeneficiary({ name: "Lola Remedios", id_number: "SC-2020-0001", discount_cents: 2800, discount_formatted: "₱28.00" }),
+        ],
+        tax: makeOrderTax({ statutory_discount_cents: 2800, statutory_discount_formatted: "₱28.00" }),
+      }),
+    );
+
+    renderDetailPage();
+
+    expect(await screen.findByText("Lola Remedios")).toBeInTheDocument();
+    expect(screen.getByText(/SC-2020-0001/)).toBeInTheDocument();
+    // Appears twice by design: once in the totals breakdown (the statutory
+    // portion of the combined Discount line), once on the beneficiary's
+    // own row.
+    expect(screen.getAllByText("-₱28.00").length).toBeGreaterThan(0);
+  });
+
+  it("shows no beneficiary section for an ordinary order", async () => {
+    vi.mocked(ordersApi.fetchOrder).mockResolvedValue(makeOrder());
+
+    renderDetailPage();
+
+    await screen.findByText("ORD-000001");
+    expect(screen.queryByText("Senior/PWD discount")).not.toBeInTheDocument();
+  });
+
+  it("shows the statutory/promo split under the combined Discount line only when applicable", async () => {
+    vi.mocked(ordersApi.fetchOrder).mockResolvedValue(
+      makeOrder({
+        discount_cents: 3800,
+        discount_formatted: "₱38.00",
+        tax: makeOrderTax({
+          statutory_discount_cents: 2800,
+          statutory_discount_formatted: "₱28.00",
+          promo_discount_cents: 1000,
+          promo_discount_formatted: "₱10.00",
+        }),
+      }),
+    );
+
+    renderDetailPage();
+
+    expect(await screen.findByText("Senior/PWD discount")).toBeInTheDocument();
+    expect(screen.getByText("-₱28.00")).toBeInTheDocument();
+    expect(screen.getByText("Promo discount")).toBeInTheDocument();
+    expect(screen.getByText("-₱10.00")).toBeInTheDocument();
   });
 });

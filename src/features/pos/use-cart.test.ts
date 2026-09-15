@@ -161,4 +161,148 @@ describe("cart store", () => {
     const { useCartStore } = await import("./use-cart");
     expect(useCartStore.getState().lines).toEqual([]);
   });
+
+  it("a cart stored before F13/P10 (no beneficiaries key) loads with an empty beneficiaries list", async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ lines: [], discount_cents: 500 }));
+    const { useCartStore } = await import("./use-cart");
+    expect(useCartStore.getState().beneficiaries).toEqual([]);
+    expect(useCartStore.getState().discount_cents).toBe(500);
+  });
+});
+
+describe("cart store — F13/P10 beneficiaries", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it("addBeneficiary adds an unassigned beneficiary and returns its localId", async () => {
+    const { useCartStore } = await import("./use-cart");
+    const localId = useCartStore.getState().addBeneficiary({
+      type: "senior",
+      name: "Lola Remedios",
+      id_number: "SC-2020-0001",
+    });
+
+    const { beneficiaries } = useCartStore.getState();
+    expect(beneficiaries).toHaveLength(1);
+    expect(beneficiaries[0]).toMatchObject({
+      localId,
+      type: "senior",
+      name: "Lola Remedios",
+      id_number: "SC-2020-0001",
+    });
+  });
+
+  it("a SECOND beneficiary is not hardcoded away — two can exist at once", async () => {
+    const { useCartStore } = await import("./use-cart");
+    useCartStore.getState().addBeneficiary({ type: "senior", name: "Lola", id_number: "SC-1" });
+    useCartStore.getState().addBeneficiary({ type: "pwd", name: "Juan", id_number: "PWD-1" });
+
+    expect(useCartStore.getState().beneficiaries).toHaveLength(2);
+  });
+
+  it("setLineBeneficiary assigns a whole line to a beneficiary", async () => {
+    const { useCartStore } = await import("./use-cart");
+    useCartStore.getState().addProduct(makeProduct({ id: 1 }));
+    const lineId = useCartStore.getState().lines[0]!.localId;
+    const beneficiaryId = useCartStore.getState().addBeneficiary({
+      type: "senior",
+      name: "Lola",
+      id_number: "SC-1",
+    });
+
+    useCartStore.getState().setLineBeneficiary(lineId, beneficiaryId);
+
+    expect(useCartStore.getState().lines[0]!.beneficiaryLocalId).toBe(beneficiaryId);
+  });
+
+  it("setLineBeneficiary(null) un-assigns a line", async () => {
+    const { useCartStore } = await import("./use-cart");
+    useCartStore.getState().addProduct(makeProduct({ id: 1 }));
+    const lineId = useCartStore.getState().lines[0]!.localId;
+    const beneficiaryId = useCartStore.getState().addBeneficiary({
+      type: "senior",
+      name: "Lola",
+      id_number: "SC-1",
+    });
+    useCartStore.getState().setLineBeneficiary(lineId, beneficiaryId);
+
+    useCartStore.getState().setLineBeneficiary(lineId, null);
+
+    expect(useCartStore.getState().lines[0]!.beneficiaryLocalId).toBeNull();
+  });
+
+  it("removeBeneficiary un-assigns every line that pointed at them", async () => {
+    const { useCartStore } = await import("./use-cart");
+    useCartStore.getState().addProduct(makeProduct({ id: 1 }));
+    useCartStore.getState().addProduct(makeProduct({ id: 2 }));
+    const [lineOne, lineTwo] = useCartStore.getState().lines;
+    const beneficiaryId = useCartStore.getState().addBeneficiary({
+      type: "senior",
+      name: "Lola",
+      id_number: "SC-1",
+    });
+    useCartStore.getState().setLineBeneficiary(lineOne!.localId, beneficiaryId);
+    useCartStore.getState().setLineBeneficiary(lineTwo!.localId, beneficiaryId);
+
+    useCartStore.getState().removeBeneficiary(beneficiaryId);
+
+    const { lines, beneficiaries } = useCartStore.getState();
+    expect(beneficiaries).toHaveLength(0);
+    expect(lines.every((l) => l.beneficiaryLocalId === null)).toBe(true);
+  });
+
+  it("removing one beneficiary never un-assigns another beneficiary's lines", async () => {
+    const { useCartStore } = await import("./use-cart");
+    useCartStore.getState().addProduct(makeProduct({ id: 1 }));
+    useCartStore.getState().addProduct(makeProduct({ id: 2 }));
+    const [lineOne, lineTwo] = useCartStore.getState().lines;
+    const senior = useCartStore.getState().addBeneficiary({ type: "senior", name: "Lola", id_number: "SC-1" });
+    const pwd = useCartStore.getState().addBeneficiary({ type: "pwd", name: "Juan", id_number: "PWD-1" });
+    useCartStore.getState().setLineBeneficiary(lineOne!.localId, senior);
+    useCartStore.getState().setLineBeneficiary(lineTwo!.localId, pwd);
+
+    useCartStore.getState().removeBeneficiary(senior);
+
+    const { lines, beneficiaries } = useCartStore.getState();
+    expect(beneficiaries).toEqual([expect.objectContaining({ localId: pwd })]);
+    expect(lines.find((l) => l.localId === lineTwo!.localId)?.beneficiaryLocalId).toBe(pwd);
+  });
+
+  it("updateBeneficiary patches an existing beneficiary's fields", async () => {
+    const { useCartStore } = await import("./use-cart");
+    const id = useCartStore.getState().addBeneficiary({ type: "senior", name: "Lola", id_number: "SC-1" });
+
+    useCartStore.getState().updateBeneficiary(id, { name: "Lola Remedios" });
+
+    expect(useCartStore.getState().beneficiaries[0]!.name).toBe("Lola Remedios");
+  });
+
+  it("clear() empties beneficiaries along with lines and discount", async () => {
+    const { useCartStore } = await import("./use-cart");
+    useCartStore.getState().addBeneficiary({ type: "senior", name: "Lola", id_number: "SC-1" });
+
+    useCartStore.getState().clear();
+
+    expect(useCartStore.getState().beneficiaries).toEqual([]);
+  });
+
+  it("persists beneficiaries and line assignments across a remount", async () => {
+    const { useCartStore } = await import("./use-cart");
+    useCartStore.getState().addProduct(makeProduct({ id: 1 }));
+    const lineId = useCartStore.getState().lines[0]!.localId;
+    const beneficiaryId = useCartStore.getState().addBeneficiary({
+      type: "senior",
+      name: "Lola",
+      id_number: "SC-1",
+    });
+    useCartStore.getState().setLineBeneficiary(lineId, beneficiaryId);
+
+    vi.resetModules();
+    const { useCartStore: reloaded } = await import("./use-cart");
+
+    expect(reloaded.getState().beneficiaries).toHaveLength(1);
+    expect(reloaded.getState().lines[0]!.beneficiaryLocalId).toBe(beneficiaryId);
+  });
 });

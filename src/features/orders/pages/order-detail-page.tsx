@@ -261,12 +261,74 @@ export function OrderDetailPage() {
             <span className="text-muted-foreground">Discount</span>
             <span>-{order.discount_formatted}</span>
           </div>
+          {/* F13/P10: the two causes behind the combined Discount figure above — shown only when either applies, so an order with no beneficiary keeps this exactly as it looked before this phase. */}
+          {order.tax.statutory_discount_cents > 0 && (
+            <div className="flex justify-between pl-3 text-xs text-muted-foreground">
+              <span>Senior/PWD discount</span>
+              <span>-{order.tax.statutory_discount_formatted}</span>
+            </div>
+          )}
+          {order.tax.promo_discount_cents > 0 && (
+            <div className="flex justify-between pl-3 text-xs text-muted-foreground">
+              <span>Promo discount</span>
+              <span>-{order.tax.promo_discount_formatted}</span>
+            </div>
+          )}
           <div className="flex justify-between font-medium">
             <span>Total</span>
             <span>{order.total_formatted}</span>
           </div>
         </div>
       </div>
+
+      {/*
+        F13/P10: the tax decomposition — VAT-registered orders show the
+        VAT breakdown (real legal terms: VAT, VATable, VAT-exempt), a
+        non-VAT order shows a "Non-VAT sale" note instead of VAT figures.
+        NEVER both, and never a zeroed-out VAT line on a non-VAT order —
+        the two are mutually exclusive by what actually happened at sale
+        time, so this branches on `order.tax.vat_registered` rather than
+        rendering every field and hiding zeros.
+      */}
+      {order.tax.vat_registered ? (
+        <div className="flex flex-col gap-1 rounded-2xl border border-border bg-muted/40 p-3 text-sm">
+          <div className="font-medium">VAT breakdown</div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VATable sales</span>
+            <span>{order.tax.vatable_sales_formatted}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VAT ({order.tax.vat_rate_bps / 100}%)</span>
+            <span>{order.tax.vat_formatted}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VAT-exempt sales</span>
+            <span>{order.tax.vat_exempt_sales_formatted}</span>
+          </div>
+        </div>
+      ) : (
+        <p className="rounded-2xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+          Non-VAT sale.
+        </p>
+      )}
+
+      {/* F13/P10: usually empty — one row per person who claimed a senior/PWD discount on this order. */}
+      {order.beneficiaries.length > 0 && (
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-border p-3 text-sm">
+          <div className="font-medium">Senior/PWD discount</div>
+          {order.beneficiaries.map((beneficiary) => (
+            <div key={beneficiary.id} className="flex items-center justify-between gap-2">
+              <div className="flex flex-col">
+                <span>{beneficiary.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {beneficiary.type_label} · ID {beneficiary.id_number}
+                </span>
+              </div>
+              <span className="font-medium">-{beneficiary.discount_formatted}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

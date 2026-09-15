@@ -1,5 +1,5 @@
 import { formatCents } from "@/lib/money";
-import type { CartAddOn, CartLine } from "./cart-types";
+import type { CartAddOn, CartBeneficiary, CartLine } from "./cart-types";
 import type { MenuProduct, MenuResponse } from "./types";
 import type { Order } from "@/features/orders/types";
 
@@ -39,6 +39,17 @@ export function makeCartLine(overrides: Partial<CartLine> = {}): CartLine {
     currency: "PHP",
     quantity: 1,
     add_ons: [],
+    beneficiaryLocalId: null,
+    ...overrides,
+  };
+}
+
+export function makeCartBeneficiary(overrides: Partial<CartBeneficiary> = {}): CartBeneficiary {
+  return {
+    localId: "beneficiary-1",
+    type: "senior",
+    name: "Lola Remedios",
+    id_number: "SC-2020-0001",
     ...overrides,
   };
 }
@@ -82,9 +93,31 @@ export function makeCheckoutResponse(overrides: Partial<Order> = {}): Order {
         quantity: 1,
         line_total_cents: 9000,
         line_total_formatted: formatCents(9000, currency),
+        beneficiary_id: null,
+        discount_cents: 0,
+        discount_formatted: formatCents(0, currency),
+        payable_cents: 9000,
+        payable_formatted: formatCents(9000, currency),
         add_ons: [],
       },
     ],
+    tax: {
+      vat_registered: false,
+      vat_rate_bps: 0,
+      vatable_sales_cents: 0,
+      vatable_sales_formatted: formatCents(0, currency),
+      vat_cents: 0,
+      vat_formatted: formatCents(0, currency),
+      vat_exempt_sales_cents: 0,
+      vat_exempt_sales_formatted: formatCents(0, currency),
+      nonvat_sales_cents: subtotalCents,
+      nonvat_sales_formatted: formatCents(subtotalCents, currency),
+      statutory_discount_cents: 0,
+      statutory_discount_formatted: formatCents(0, currency),
+      promo_discount_cents: discountCents,
+      promo_discount_formatted: formatCents(discountCents, currency),
+    },
+    beneficiaries: [],
     ...overrides,
   };
 }

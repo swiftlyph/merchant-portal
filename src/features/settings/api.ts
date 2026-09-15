@@ -33,6 +33,7 @@ function normalizeProfile(raw: Partial<MerchantProfile> | null | undefined): Mer
     receipt_header: raw?.receipt_header ?? null,
     receipt_footer: raw?.receipt_footer ?? null,
     timezone: raw?.timezone ?? null,
+    vat_registered: raw?.vat_registered ?? false,
     created_at: raw?.created_at ?? "",
     updated_at: raw?.updated_at ?? "",
   };

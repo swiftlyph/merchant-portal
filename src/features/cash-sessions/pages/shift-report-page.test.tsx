@@ -114,3 +114,93 @@ describe("ShiftReportPage", () => {
     expect(window.print).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ShiftReportPage — F13/P10 tax & senior/PWD discount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.print = vi.fn();
+  });
+
+  it("shows the statutory/promo split under Discounts only when applicable", async () => {
+    vi.mocked(cashSessionsApi.fetchZReport).mockResolvedValue(
+      makeZReport({
+        sales: {
+          ...makeZReport().sales,
+          discounts_cents: 3800,
+          discounts_formatted: "₱38.00",
+          statutory_discount_cents: 2800,
+          statutory_discount_formatted: "₱28.00",
+          promo_discount_cents: 1000,
+          promo_discount_formatted: "₱10.00",
+        },
+      }),
+    );
+
+    renderReportPage();
+
+    expect(await screen.findByText("Senior/PWD")).toBeInTheDocument();
+    expect(screen.getByText("-₱28.00")).toBeInTheDocument();
+    expect(await screen.findByText("Promo")).toBeInTheDocument();
+    expect(screen.getByText("-₱10.00")).toBeInTheDocument();
+  });
+
+  it("omits the split when the shift has no statutory or promo discounts", async () => {
+    vi.mocked(cashSessionsApi.fetchZReport).mockResolvedValue(
+      makeZReport({
+        sales: {
+          ...makeZReport().sales,
+          statutory_discount_cents: 0,
+          promo_discount_cents: 0,
+        },
+      }),
+    );
+
+    renderReportPage();
+
+    await screen.findByText("Sales summary");
+    expect(screen.queryByText("Senior/PWD")).not.toBeInTheDocument();
+    expect(screen.queryByText("Promo")).not.toBeInTheDocument();
+  });
+
+  it("shows a VAT summary row when the shift has VAT-registered sales", async () => {
+    vi.mocked(cashSessionsApi.fetchZReport).mockResolvedValue(
+      makeZReport({
+        sales: {
+          ...makeZReport().sales,
+          vatable_sales_cents: 8929,
+          vatable_sales_formatted: "₱89.29",
+          vat_cents: 1071,
+          vat_formatted: "₱10.71",
+          vat_exempt_sales_cents: 0,
+          vat_exempt_sales_formatted: "₱0.00",
+        },
+      }),
+    );
+
+    renderReportPage();
+
+    expect(await screen.findByText("VAT summary")).toBeInTheDocument();
+    expect(screen.getByText("VATable sales")).toBeInTheDocument();
+    expect(screen.getByText("₱89.29")).toBeInTheDocument();
+  });
+
+  it("omits the VAT summary row entirely for a shift with no VAT-registered sales — never shows it zeroed out", async () => {
+    vi.mocked(cashSessionsApi.fetchZReport).mockResolvedValue(
+      makeZReport({
+        sales: {
+          ...makeZReport().sales,
+          vatable_sales_cents: 0,
+          vat_cents: 0,
+          vat_exempt_sales_cents: 0,
+          nonvat_sales_cents: 30000,
+        },
+      }),
+    );
+
+    renderReportPage();
+
+    await screen.findByText("Sales summary");
+    expect(screen.queryByText("VAT summary")).not.toBeInTheDocument();
+    expect(screen.queryByText("VATable sales")).not.toBeInTheDocument();
+  });
+});

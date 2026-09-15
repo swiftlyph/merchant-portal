@@ -63,9 +63,31 @@ export function ReceiptContent({ receipt }: { receipt: Receipt }) {
                 <span>{addOn.price_formatted}</span>
               </div>
             ))}
+            {/* F13/P10: this line's own statutory discount — 0 on an ordinary line, so this only ever prints for a line assigned to a beneficiary. */}
+            {line.discount_cents > 0 && (
+              <div className="flex justify-between pl-3 text-muted-foreground">
+                <span>Senior/PWD discount</span>
+                <span>-{line.discount_formatted}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      {/* F13/P10: usually absent — one row per person who claimed a senior/PWD discount on this order. */}
+      {order.beneficiaries.length > 0 && (
+        <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">
+          <div className="text-center font-bold">Senior/PWD discount</div>
+          {order.beneficiaries.map((beneficiary, index) => (
+            <div key={`${beneficiary.id_number}-${index}`} className="flex justify-between">
+              <span>
+                {beneficiary.name} ({beneficiary.type_label}, ID {beneficiary.id_number})
+              </span>
+              <span>-{beneficiary.discount_formatted}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">
         <div className="flex justify-between">
@@ -76,10 +98,53 @@ export function ReceiptContent({ receipt }: { receipt: Receipt }) {
           <span>Discount</span>
           <span>-{order.discount_formatted}</span>
         </div>
+        {/* F13/P10: the two causes behind the Discount line above — shown only when either applies. */}
+        {order.statutory_discount_cents > 0 && (
+          <div className="flex justify-between pl-3 text-muted-foreground">
+            <span>Senior/PWD</span>
+            <span>-{order.statutory_discount_formatted}</span>
+          </div>
+        )}
+        {order.promo_discount_cents > 0 && (
+          <div className="flex justify-between pl-3 text-muted-foreground">
+            <span>Promo</span>
+            <span>-{order.promo_discount_formatted}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm font-bold">
           <span>Total</span>
           <span>{order.total_formatted}</span>
         </div>
+      </div>
+
+      {/*
+        F13/P10: real legal terms (VAT, VATable, VAT-exempt) — this is the
+        one place F12's plain-language convention doesn't apply, because
+        these print on a tax document. A VAT-registered order shows the
+        breakdown; every other order shows the Non-VAT note instead —
+        never both, and never a zeroed VAT figure on a non-VAT sale (see
+        ReceiptTax's docblock for why the two shapes are mutually
+        exclusive on the wire).
+      */}
+      <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">
+        {order.tax.vat_registered ? (
+          <>
+            <div className="flex justify-between">
+              <span>VATable sales</span>
+              <span>{order.tax.vatable_sales_formatted}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>VAT ({order.tax.vat_rate_bps / 100}%)</span>
+              <span>{order.tax.vat_formatted}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>VAT-exempt sales</span>
+              <span>{order.tax.vat_exempt_sales_formatted}</span>
+            </div>
+          </>
+        ) : (
+          <p className="text-center text-muted-foreground">{order.tax.non_vat_note}</p>
+        )}
       </div>
 
       <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">

@@ -48,7 +48,7 @@ export function PaymentDialog({
   /** Called with the product ids the server rejected as no-longer-available, so the cart can flag them. */
   onUnavailableProducts: (productIds: number[]) => void;
 }) {
-  const { lines, discount_cents, clear } = useCartStore();
+  const { lines, discount_cents, beneficiaries, clear } = useCartStore();
   const { charge, isPending, reset } = useCheckout();
 
   const [method, setMethod] = useState<PaymentMethod>("cash");
@@ -115,6 +115,7 @@ export function PaymentDialog({
       method,
       discount_cents,
       method === "split" ? { cash_cents: cashCents, gcash_cents: gcashCents } : undefined,
+      beneficiaries,
     );
 
     try {

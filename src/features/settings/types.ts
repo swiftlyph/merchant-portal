@@ -28,13 +28,23 @@ export interface MerchantProfile {
   receipt_header: string | null;
   receipt_footer: string | null;
   timezone: string | null;
+  /**
+   * F13/P10: whether this shop is VAT-registered — decides how every NEW
+   * order's tax is decomposed (12% VAT rules + the VAT-aware senior/PWD
+   * discount formula vs. the flat 20%-off one). NOT nullable on the
+   * backend (`sometimes`+`boolean`, not `nullable`) — a shop is
+   * VAT-registered or it isn't. Toggling this never changes an order
+   * already placed; each order snapshots the toggle at checkout time.
+   */
+  vat_registered: boolean;
   created_at: string;
   updated_at: string;
 }
 
 /**
  * PATCH /merchant/profile payload — every field `sometimes`+`nullable` on
- * the backend (UpdateMerchantProfileRequest). name/status/id/timezone are
+ * the backend (UpdateMerchantProfileRequest), except `vat_registered`,
+ * which is `sometimes`+`boolean` (never null). name/status/id/timezone are
  * deliberately excluded: they are not accepted by this endpoint at all.
  */
 export interface UpdateMerchantProfileRequest {
@@ -48,6 +58,7 @@ export interface UpdateMerchantProfileRequest {
   tax_identifier?: string | null;
   receipt_header?: string | null;
   receipt_footer?: string | null;
+  vat_registered?: boolean;
 }
 
 /**

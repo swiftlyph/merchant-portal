@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { itemCount, lineTotalCents, splitRemainderCents, subtotalCents, totalCents } from "./cart-math";
+import {
+  estimatedLineDiscountCents,
+  estimatedStatutoryDiscountCents,
+  itemCount,
+  lineTotalCents,
+  splitRemainderCents,
+  subtotalCents,
+  totalCents,
+} from "./cart-math";
 import { makeCartAddOn, makeCartLine } from "./test-fixtures";
 
 describe("lineTotalCents", () => {
@@ -71,5 +79,38 @@ describe("splitRemainderCents", () => {
 
   it("is negative when over the total", () => {
     expect(splitRemainderCents(9000, 5000, 5000)).toBe(-1000);
+  });
+});
+
+describe("F13/P10 — estimatedLineDiscountCents", () => {
+  it("is 0 for a line with no beneficiary assigned", () => {
+    const line = makeCartLine({ unit_price_cents: 14000, beneficiaryLocalId: null });
+    expect(estimatedLineDiscountCents(line)).toBe(0);
+  });
+
+  it("is a flat 20% of the line total for an assigned line", () => {
+    const line = makeCartLine({ unit_price_cents: 14000, quantity: 1, beneficiaryLocalId: "b1" });
+    expect(estimatedLineDiscountCents(line)).toBe(2800);
+  });
+
+  it("is never a float — rounds to the nearest cent", () => {
+    const line = makeCartLine({ unit_price_cents: 8999, quantity: 1, beneficiaryLocalId: "b1" });
+    expect(Number.isInteger(estimatedLineDiscountCents(line))).toBe(true);
+  });
+});
+
+describe("F13/P10 — estimatedStatutoryDiscountCents", () => {
+  it("sums only the assigned lines' estimates, ignoring ordinary lines", () => {
+    const lines = [
+      makeCartLine({ localId: "a", unit_price_cents: 14000, quantity: 1, beneficiaryLocalId: "b1" }),
+      makeCartLine({ localId: "b", unit_price_cents: 10000, quantity: 1, beneficiaryLocalId: null }),
+    ];
+    // 20% of 14000 = 2800; the unassigned line contributes nothing.
+    expect(estimatedStatutoryDiscountCents(lines)).toBe(2800);
+  });
+
+  it("is 0 when nothing in the cart is assigned to a beneficiary", () => {
+    const lines = [makeCartLine({ beneficiaryLocalId: null })];
+    expect(estimatedStatutoryDiscountCents(lines)).toBe(0);
   });
 });

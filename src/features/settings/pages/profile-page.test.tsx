@@ -223,3 +223,142 @@ describe("ProfilePage permission gating", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 });
+
+describe("ProfilePage — F13/P10 VAT registration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 1,
+        name: "Merchant One",
+        email: "merchant@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: [...OWNER_PRESET],
+      },
+      sessionNotice: null,
+    });
+  });
+
+  it("loads the current vat_registered value into the switch", async () => {
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile({ vat_registered: true }));
+
+    renderProfilePage();
+
+    const toggle = await screen.findByLabelText("VAT-registered");
+    expect(toggle).toBeChecked();
+  });
+
+  it("shows the plain-language note on what the toggle affects", async () => {
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile());
+
+    renderProfilePage();
+
+    expect(
+      await screen.findByText(
+        /Applies 12% VAT rules and the correct senior\/PWD discount formula to new orders\. Past orders are unaffected\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("toggling marks the form dirty and saves vat_registered on Save", async () => {
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile({ vat_registered: false }));
+    vi.mocked(settingsApi.updateProfile).mockResolvedValue(makeProfile({ vat_registered: true }));
+
+    renderProfilePage();
+    const user = userEvent.setup();
+
+    const toggle = await screen.findByLabelText("VAT-registered");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+
+    await user.click(toggle);
+
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(settingsApi.updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ vat_registered: true }),
+      );
+    });
+  });
+
+  it("persists across a reload — GET reflects what PATCH just saved", async () => {
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValueOnce(makeProfile({ vat_registered: false }));
+    vi.mocked(settingsApi.updateProfile).mockResolvedValue(makeProfile({ vat_registered: true }));
+
+    renderProfilePage();
+    const user = userEvent.setup();
+
+    const toggle = await screen.findByLabelText("VAT-registered");
+    await user.click(toggle);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(screen.getByLabelText("VAT-registered")).toBeChecked());
+
+    // A fresh GET (a reload) now reflects the saved value.
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValueOnce(makeProfile({ vat_registered: true }));
+    const { unmount } = renderProfilePage();
+    expect(await screen.findByLabelText("VAT-registered")).toBeChecked();
+    unmount();
+  });
+
+  it("toggling off and saving again disables it", async () => {
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile({ vat_registered: true }));
+    vi.mocked(settingsApi.updateProfile).mockResolvedValue(makeProfile({ vat_registered: false }));
+
+    renderProfilePage();
+    const user = userEvent.setup();
+
+    const toggle = await screen.findByLabelText("VAT-registered");
+    expect(toggle).toBeChecked();
+
+    await user.click(toggle);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(settingsApi.updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ vat_registered: false }),
+      );
+    });
+  });
+
+  it("Save is disabled again after a successful save until something else changes", async () => {
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile({ vat_registered: false }));
+    vi.mocked(settingsApi.updateProfile).mockResolvedValue(makeProfile({ vat_registered: true }));
+
+    renderProfilePage();
+    const user = userEvent.setup();
+
+    const toggle = await screen.findByLabelText("VAT-registered");
+    await user.click(toggle);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled());
+  });
+
+  it("without profile.edit: the switch is disabled and reflects the current value read-only", async () => {
+    useAuthStore.setState({
+      status: "authed",
+      token: "t",
+      user: {
+        id: 2,
+        name: "Staffer",
+        email: "staff@gasa.test",
+        roles: [],
+        merchant: { id: 1, name: "Merchant One", status: "active" },
+        permissions: ["profile.view"],
+      },
+      sessionNotice: null,
+    });
+    vi.mocked(settingsApi.fetchProfile).mockResolvedValue(makeProfile({ vat_registered: true }));
+
+    renderProfilePage();
+
+    const toggle = await screen.findByLabelText("VAT-registered");
+    expect(toggle).toBeChecked();
+    expect(toggle).toBeDisabled();
+  });
+});

@@ -148,3 +148,69 @@ describe("ReportsPage", () => {
     expect(topItemsRange).toMatchObject(byDayRange as object);
   });
 });
+
+describe("ReportsPage — F13/P10 tax & senior/PWD discount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(reportsApi.fetchSalesByDay).mockResolvedValue(makeSalesByDayResponse());
+    vi.mocked(reportsApi.fetchTopItems).mockResolvedValue(makeTopItemsResponse());
+  });
+
+  it("shows statutory and promo discount tiles only when each individually applies", async () => {
+    vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(
+      makeSalesSummary({ statutory_discount_cents: 2800, statutory_discount_formatted: "₱28.00", promo_discount_cents: 0, promo_discount_formatted: "₱0.00" }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("Senior/PWD discount")).toBeInTheDocument();
+    expect(screen.getByText("₱28.00")).toBeInTheDocument();
+    // Promo is genuinely zero this time — never shown as a zeroed tile.
+    expect(screen.queryByText("Promo discount")).not.toBeInTheDocument();
+  });
+
+  it("omits both discount tiles when a range has neither", async () => {
+    vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(
+      makeSalesSummary({ statutory_discount_cents: 0, promo_discount_cents: 0 }),
+    );
+
+    renderPage();
+
+    await screen.findByText(makeSalesSummary().net_formatted);
+    expect(screen.queryByText("Senior/PWD discount")).not.toBeInTheDocument();
+    expect(screen.queryByText("Promo discount")).not.toBeInTheDocument();
+  });
+
+  it("shows a VAT summary row when the range has VAT-registered sales", async () => {
+    vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(
+      makeSalesSummary({
+        vatable_sales_cents: 25000,
+        vatable_sales_formatted: "₱250.00",
+        vat_cents: 3000,
+        vat_formatted: "₱30.00",
+        vat_exempt_sales_cents: 12500,
+        vat_exempt_sales_formatted: "₱125.00",
+      }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("VAT summary")).toBeInTheDocument();
+    expect(screen.getByText("VATable sales")).toBeInTheDocument();
+    expect(screen.getByText("₱250.00")).toBeInTheDocument();
+    expect(screen.getByText("VAT-exempt sales")).toBeInTheDocument();
+    expect(screen.getByText("₱125.00")).toBeInTheDocument();
+  });
+
+  it("omits the VAT summary row entirely for a range with no VAT-registered orders — never shows zeros", async () => {
+    vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(
+      makeSalesSummary({ vatable_sales_cents: 0, vat_cents: 0, vat_exempt_sales_cents: 0, nonvat_sales_cents: 23000 }),
+    );
+
+    renderPage();
+
+    await screen.findByText(makeSalesSummary().net_formatted);
+    expect(screen.queryByText("VAT summary")).not.toBeInTheDocument();
+    expect(screen.queryByText("VATable sales")).not.toBeInTheDocument();
+  });
+});

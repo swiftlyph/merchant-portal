@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCheckout, linesToCheckoutRequest } from "./use-checkout";
 import * as posApi from "./api";
-import { makeCartLine, makeCheckoutResponse } from "./test-fixtures";
+import { makeCartBeneficiary, makeCartLine, makeCheckoutResponse } from "./test-fixtures";
 import { ApiError } from "@/lib/api/client";
 
 vi.mock("./api", () => ({
@@ -142,5 +142,135 @@ describe("useCheckout", () => {
     const [, secondKey] = vi.mocked(posApi.checkout).mock.calls[1]!;
 
     expect(secondKey).not.toBe(firstKey);
+  });
+});
+
+describe("F13/P10 — linesToCheckoutRequest with beneficiaries", () => {
+  it("omits `beneficiaries` and `items[*].beneficiary` entirely for an ordinary checkout", () => {
+    const request = linesToCheckoutRequest([makeCartLine()], "cash", 0);
+    expect(request.beneficiaries).toBeUndefined();
+    expect(request.items[0]!.beneficiary).toBeUndefined();
+  });
+
+  it("resolves a line's beneficiaryLocalId to its POSITION in the beneficiaries array", () => {
+    const beneficiary = makeCartBeneficiary({ localId: "b1", type: "senior", name: "Lola", id_number: "SC-1" });
+    const lines = [makeCartLine({ beneficiaryLocalId: "b1" }), makeCartLine({ localId: "l2", beneficiaryLocalId: null })];
+
+    const request = linesToCheckoutRequest(lines, "cash", 0, undefined, [beneficiary]);
+
+    expect(request.beneficiaries).toEqual([{ type: "senior", name: "Lola", id_number: "SC-1" }]);
+    expect(request.items[0]!.beneficiary).toBe(0);
+    expect(request.items[1]!.beneficiary).toBeUndefined();
+  });
+
+  it("resolves indexes correctly for a SECOND beneficiary, never hardcoding one", () => {
+    const senior = makeCartBeneficiary({ localId: "b1", type: "senior" });
+    const pwd = makeCartBeneficiary({ localId: "b2", type: "pwd", name: "Juan", id_number: "PWD-1" });
+    const lines = [
+      makeCartLine({ localId: "l1", beneficiaryLocalId: "b2" }),
+      makeCartLine({ localId: "l2", beneficiaryLocalId: "b1" }),
+    ];
+
+    const request = linesToCheckoutRequest(lines, "cash", 0, undefined, [senior, pwd]);
+
+    expect(request.items[0]!.beneficiary).toBe(1); // b2 is at index 1
+    expect(request.items[1]!.beneficiary).toBe(0); // b1 is at index 0
+  });
+});
+
+describe("F13/P10 — idempotency key rotation with beneficiaries", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("mints a NEW key when a beneficiary is added to an otherwise identical basket", async () => {
+    vi.mocked(posApi.checkout)
+      .mockRejectedValueOnce(new ApiError({ status: 422, message: "bad", code: "product_unavailable" }))
+      .mockResolvedValueOnce(makeCheckoutResponse());
+
+    const { result } = renderHook(() => useCheckout(), { wrapper });
+    const before = linesToCheckoutRequest([makeCartLine({ localId: "l1" })], "cash", 0);
+    const after = linesToCheckoutRequest(
+      [makeCartLine({ localId: "l1", beneficiaryLocalId: "b1" })],
+      "cash",
+      0,
+      undefined,
+      [makeCartBeneficiary({ localId: "b1" })],
+    );
+
+    await expect(result.current.charge(before)).rejects.toThrow();
+    await result.current.charge(after);
+
+    const [, firstKey] = vi.mocked(posApi.checkout).mock.calls[0]!;
+    const [, secondKey] = vi.mocked(posApi.checkout).mock.calls[1]!;
+    expect(secondKey).not.toBe(firstKey);
+  });
+
+  it("mints a NEW key when a beneficiary's own details are edited", async () => {
+    vi.mocked(posApi.checkout)
+      .mockRejectedValueOnce(new ApiError({ status: 422, message: "bad", code: "validation_failed" }))
+      .mockResolvedValueOnce(makeCheckoutResponse());
+
+    const { result } = renderHook(() => useCheckout(), { wrapper });
+    const lines = [makeCartLine({ localId: "l1", beneficiaryLocalId: "b1" })];
+    const before = linesToCheckoutRequest(lines, "cash", 0, undefined, [
+      makeCartBeneficiary({ localId: "b1", name: "Lola" }),
+    ]);
+    const after = linesToCheckoutRequest(lines, "cash", 0, undefined, [
+      makeCartBeneficiary({ localId: "b1", name: "Lola Remedios" }),
+    ]);
+
+    await expect(result.current.charge(before)).rejects.toThrow();
+    await result.current.charge(after);
+
+    const [, firstKey] = vi.mocked(posApi.checkout).mock.calls[0]!;
+    const [, secondKey] = vi.mocked(posApi.checkout).mock.calls[1]!;
+    expect(secondKey).not.toBe(firstKey);
+  });
+
+  it("mints a NEW key when a beneficiary is removed", async () => {
+    vi.mocked(posApi.checkout)
+      .mockRejectedValueOnce(new ApiError({ status: 422, message: "bad", code: "product_unavailable" }))
+      .mockResolvedValueOnce(makeCheckoutResponse());
+
+    const { result } = renderHook(() => useCheckout(), { wrapper });
+    const lines = [makeCartLine({ localId: "l1" })];
+    const withBeneficiary = linesToCheckoutRequest(
+      [{ ...lines[0]!, beneficiaryLocalId: "b1" }],
+      "cash",
+      0,
+      undefined,
+      [makeCartBeneficiary({ localId: "b1" })],
+    );
+    const without = linesToCheckoutRequest(lines, "cash", 0);
+
+    await expect(result.current.charge(withBeneficiary)).rejects.toThrow();
+    await result.current.charge(without);
+
+    const [, firstKey] = vi.mocked(posApi.checkout).mock.calls[0]!;
+    const [, secondKey] = vi.mocked(posApi.checkout).mock.calls[1]!;
+    expect(secondKey).not.toBe(firstKey);
+  });
+
+  it("RESENDS the SAME key across a retry when nothing basket-relevant changed (beneficiaries included)", async () => {
+    vi.mocked(posApi.checkout)
+      .mockRejectedValueOnce(new ApiError({ status: 0, message: "network down" }))
+      .mockResolvedValueOnce(makeCheckoutResponse());
+
+    const { result } = renderHook(() => useCheckout(), { wrapper });
+    const request = linesToCheckoutRequest(
+      [makeCartLine({ localId: "l1", beneficiaryLocalId: "b1" })],
+      "cash",
+      0,
+      undefined,
+      [makeCartBeneficiary({ localId: "b1" })],
+    );
+
+    await expect(result.current.charge(request)).rejects.toThrow();
+    await result.current.charge(request);
+
+    const [, firstKey] = vi.mocked(posApi.checkout).mock.calls[0]!;
+    const [, secondKey] = vi.mocked(posApi.checkout).mock.calls[1]!;
+    expect(secondKey).toBe(firstKey);
   });
 });

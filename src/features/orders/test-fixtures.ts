@@ -1,5 +1,41 @@
-import type { Order, OrdersPage, Receipt } from "./types";
+import type { Order, OrderBeneficiary, OrdersPage, OrderTax, Receipt } from "./types";
 import { formatCents } from "@/lib/money";
+
+export function makeOrderTax(overrides: Partial<OrderTax> = {}): OrderTax {
+  return {
+    vat_registered: false,
+    vat_rate_bps: 0,
+    vatable_sales_cents: 0,
+    vatable_sales_formatted: formatCents(0),
+    vat_cents: 0,
+    vat_formatted: formatCents(0),
+    vat_exempt_sales_cents: 0,
+    vat_exempt_sales_formatted: formatCents(0),
+    nonvat_sales_cents: 0,
+    nonvat_sales_formatted: formatCents(0),
+    statutory_discount_cents: 0,
+    statutory_discount_formatted: formatCents(0),
+    promo_discount_cents: 0,
+    promo_discount_formatted: formatCents(0),
+    ...overrides,
+  };
+}
+
+export function makeOrderBeneficiary(overrides: Partial<OrderBeneficiary> = {}): OrderBeneficiary {
+  const discountCents = overrides.discount_cents ?? 2800;
+  return {
+    id: 1,
+    type: "senior",
+    type_label: "Senior Citizen",
+    name: "Lola Remedios",
+    id_number: "SC-2020-0001",
+    discount_cents: discountCents,
+    discount_formatted: formatCents(discountCents),
+    vat_exempt_sales_cents: 0,
+    vat_exempt_sales_formatted: formatCents(0),
+    ...overrides,
+  };
+}
 
 export function makeOrder(overrides: Partial<Order> = {}): Order {
   const currency = overrides.currency ?? "PHP";
@@ -39,9 +75,16 @@ export function makeOrder(overrides: Partial<Order> = {}): Order {
         quantity: 1,
         line_total_cents: 15000,
         line_total_formatted: formatCents(15000, currency),
+        beneficiary_id: null,
+        discount_cents: 0,
+        discount_formatted: formatCents(0, currency),
+        payable_cents: 15000,
+        payable_formatted: formatCents(15000, currency),
         add_ons: [],
       },
     ],
+    tax: makeOrderTax(),
+    beneficiaries: [],
     ...overrides,
   };
 }
@@ -77,6 +120,10 @@ export function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
           unit_price_formatted: formatCents(15000),
           line_total_cents: 15000,
           line_total_formatted: formatCents(15000),
+          discount_cents: 0,
+          discount_formatted: formatCents(0),
+          payable_cents: 15000,
+          payable_formatted: formatCents(15000),
           add_ons: [],
         },
       ],
@@ -84,8 +131,14 @@ export function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
       subtotal_formatted: formatCents(15000),
       discount_cents: 0,
       discount_formatted: formatCents(0),
+      statutory_discount_cents: 0,
+      statutory_discount_formatted: formatCents(0),
+      promo_discount_cents: 0,
+      promo_discount_formatted: formatCents(0),
       total_cents: 15000,
       total_formatted: formatCents(15000),
+      tax: { vat_registered: false, non_vat_note: "This is a NON-VAT registered sale.", nonvat_sales_cents: 15000, nonvat_sales_formatted: formatCents(15000) },
+      beneficiaries: [],
       payment_method: "cash",
       cash_cents: null,
       cash_formatted: null,

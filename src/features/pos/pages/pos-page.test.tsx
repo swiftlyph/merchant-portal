@@ -8,6 +8,7 @@ import * as posApi from "../api";
 import { useCartStore } from "../use-cart";
 import { ApiError } from "@/lib/api/client";
 import { makeCheckoutResponse, makeMenuResponse, makeProduct } from "../test-fixtures";
+import { makeOrderBeneficiary } from "@/features/orders/test-fixtures";
 
 vi.mock("../api", () => ({
   fetchMenu: vi.fn(),
@@ -280,5 +281,235 @@ describe("PosPage", () => {
     renderPage();
     expect(await screen.findByText("Couldn't load the menu.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+  });
+});
+
+describe("PosPage — F13/P10 senior/PWD discount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    useCartStore.getState().clear();
+    vi.mocked(posApi.fetchMenu).mockResolvedValue(
+      makeMenuResponse({
+        data: [
+          makeProduct({ id: 1, name: "Espresso (Single)", price_cents: 9000 }),
+          makeProduct({ id: 2, name: "Cafe Latte (16oz)", price_cents: 14000 }),
+        ],
+      }),
+    );
+  });
+
+  it("adding a beneficiary and assigning a line includes both in the checkout request", async () => {
+    vi.mocked(posApi.checkout).mockResolvedValue(makeCheckoutResponse());
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ }));
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add senior/PWD discount" });
+    await user.type(within(dialog).getByLabelText("Name"), "Lola Remedios");
+    await user.type(within(dialog).getByLabelText("ID number"), "SC-2020-0001");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    // Assign the espresso line to the newly-added beneficiary.
+    const assignSelect = await screen.findByRole("combobox", {
+      name: /Assign Espresso \(Single\) to a senior\/PWD discount/,
+    });
+    await user.click(assignSelect);
+    await user.click(await screen.findByRole("option", { name: "Lola Remedios" }));
+
+    await user.click(screen.getByRole("button", { name: /^Charge ₱/ }));
+    const paymentDialog = await screen.findByRole("dialog", { name: "Take payment" });
+    await user.click(within(paymentDialog).getByRole("button", { name: /^Charge/ }));
+
+    await waitFor(() => expect(posApi.checkout).toHaveBeenCalledTimes(1));
+    const [request] = vi.mocked(posApi.checkout).mock.calls[0]!;
+    expect(request).toMatchObject({
+      beneficiaries: [{ type: "senior", name: "Lola Remedios", id_number: "SC-2020-0001" }],
+      items: [{ product_id: 1, quantity: 1, beneficiary: 0 }],
+    });
+
+    // Let the success dialog settle before the test ends — see the
+    // key-rotation test's comment for why (a still-closing Radix portal
+    // can otherwise leak into whichever test runs next).
+    await screen.findByRole("button", { name: "New order" });
+  });
+
+  it("a beneficiary with no assigned lines disables Charge and shows an inline warning, mirroring beneficiary_unused", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ }));
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add senior/PWD discount" });
+    await user.type(within(dialog).getByLabelText("Name"), "Lola Remedios");
+    await user.type(within(dialog).getByLabelText("ID number"), "SC-2020-0001");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    // Never assigned to the one line in the cart.
+    expect(
+      await screen.findByText(/No items assigned yet/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Assign an item to every senior\/PWD discount before charging/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Charge ₱/ })).toBeDisabled();
+  });
+
+  it("removing a beneficiary un-assigns their line and re-enables Charge", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ }));
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add senior/PWD discount" });
+    await user.type(within(dialog).getByLabelText("Name"), "Lola Remedios");
+    await user.type(within(dialog).getByLabelText("ID number"), "SC-2020-0001");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    const assignSelect = await screen.findByRole("combobox", {
+      name: /Assign Espresso \(Single\) to a senior\/PWD discount/,
+    });
+    await user.click(assignSelect);
+    await user.click(await screen.findByRole("option", { name: "Lola Remedios" }));
+    expect(screen.getByRole("button", { name: /^Charge ₱/ })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Remove Lola Remedios" }));
+
+    expect(screen.queryByText("Lola Remedios")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Charge ₱/ })).toBeEnabled();
+    expect(useCartStore.getState().lines[0]!.beneficiaryLocalId).toBeNull();
+  });
+
+  it("supports a SECOND beneficiary on the same order — not hardcoded to one", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ }));
+    await user.click(await screen.findByRole("button", { name: /Cafe Latte \(16oz\)/ }));
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    let dialog = await screen.findByRole("dialog", { name: "Add senior/PWD discount" });
+    await user.type(within(dialog).getByLabelText("Name"), "Lola Remedios");
+    await user.type(within(dialog).getByLabelText("ID number"), "SC-2020-0001");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    dialog = await screen.findByRole("dialog", { name: "Add senior/PWD discount" });
+    await user.click(within(dialog).getByRole("combobox", { name: "Type" }));
+    await user.click(await screen.findByRole("option", { name: /Person with Disability/ }));
+    await user.type(within(dialog).getByLabelText("Name"), "Juan Cruz");
+    await user.type(within(dialog).getByLabelText("ID number"), "PWD-1234-5678");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    expect(screen.getByText("Lola Remedios", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("Juan Cruz", { exact: false })).toBeInTheDocument();
+    expect(useCartStore.getState().beneficiaries).toHaveLength(2);
+  });
+
+  it("labels the discount estimate as an estimate and it never appears as the charged total", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ })); // ₱90.00
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    const dialog = await screen.findByRole("dialog", { name: "Add senior/PWD discount" });
+    await user.type(within(dialog).getByLabelText("Name"), "Lola Remedios");
+    await user.type(within(dialog).getByLabelText("ID number"), "SC-2020-0001");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    const assignSelect = await screen.findByRole("combobox", {
+      name: /Assign Espresso \(Single\) to a senior\/PWD discount/,
+    });
+    await user.click(assignSelect);
+    await user.click(await screen.findByRole("option", { name: "Lola Remedios" }));
+
+    // A flat 20% client-side ESTIMATE — labelled as such, and distinct
+    // from a server figure (which this test never receives, since
+    // checkout is never submitted here). Appears twice by design: once
+    // on the beneficiary's own summary row, once on the assigned line
+    // itself (see BeneficiaryList and CartLineItem).
+    const estimates = await screen.findAllByText(/Est\..*₱18\.00/);
+    expect(estimates.length).toBeGreaterThan(0);
+  });
+
+  it("adding a beneficiary rotates the checkout key (the same basket-change rule as an edited quantity)", async () => {
+    // Only ONE Once is queued for this first attempt (the network
+    // failure) — an unconsumed queued value here would otherwise leak
+    // into whichever test's checkout() call runs next, since neither
+    // clearAllMocks() nor a fresh render drains a mock's pending
+    // *Once queue, only its call history.
+    vi.mocked(posApi.checkout).mockRejectedValueOnce(
+      new ApiError({ status: 0, message: "network down" }),
+    );
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ }));
+    await user.click(screen.getByRole("button", { name: /^Charge ₱/ }));
+    let dialog = await screen.findByRole("dialog", { name: "Take payment" });
+    await user.click(within(dialog).getByRole("button", { name: /^Charge/ }));
+    await waitFor(() => expect(posApi.checkout).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(/safe to retry/i)).toBeInTheDocument();
+    const [, firstKey] = vi.mocked(posApi.checkout).mock.calls[0]!;
+
+    // Close the payment dialog without retrying, add a beneficiary and
+    // assign the only line, then charge again — this is now a DIFFERENT
+    // basket and must get a fresh key, not the retry path.
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    vi.mocked(posApi.checkout).mockResolvedValueOnce(makeCheckoutResponse());
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    dialog = await screen.findByRole("dialog", { name: "Add senior/PWD discount" });
+    await user.type(within(dialog).getByLabelText("Name"), "Lola Remedios");
+    await user.type(within(dialog).getByLabelText("ID number"), "SC-2020-0001");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+    const assignSelect = await screen.findByRole("combobox", {
+      name: /Assign Espresso \(Single\) to a senior\/PWD discount/,
+    });
+    await user.click(assignSelect);
+    await user.click(await screen.findByRole("option", { name: "Lola Remedios" }));
+
+    await user.click(screen.getByRole("button", { name: /^Charge ₱/ }));
+    dialog = await screen.findByRole("dialog", { name: "Take payment" });
+    await user.click(within(dialog).getByRole("button", { name: /^Charge/ }));
+
+    await waitFor(() => expect(posApi.checkout).toHaveBeenCalledTimes(2));
+    const [, secondKey] = vi.mocked(posApi.checkout).mock.calls[1]!;
+    expect(secondKey).not.toBe(firstKey);
+
+    // Let the success dialog's own mount/animation settle before the test
+    // ends — otherwise its Radix portal can still be closing when the
+    // NEXT test's render starts, leaking a stale dialog into it.
+    await screen.findByRole("button", { name: "New order" });
+  });
+
+  it("shows the beneficiary's name and server-authoritative discount on the success screen", async () => {
+    vi.mocked(posApi.checkout).mockResolvedValue(
+      makeCheckoutResponse({
+        beneficiaries: [
+          makeOrderBeneficiary({ name: "Lola Remedios", discount_cents: 2800, discount_formatted: "₱28.00" }),
+        ],
+      }),
+    );
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ }));
+    await user.click(screen.getByRole("button", { name: /^Charge ₱/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Take payment" });
+    await user.click(within(dialog).getByRole("button", { name: /^Charge/ }));
+    await waitFor(() => expect(posApi.checkout).toHaveBeenCalledTimes(1));
+
+    // Rendered as separate JSX text nodes ({name} — {discount} off), so
+    // matched by a normalizer joining the element's own text content
+    // rather than a regex spanning node boundaries. Matches both the <li>
+    // and its parent <ul> (whose textContent is inherited) — either
+    // proves the row rendered.
+    const matches = await screen.findAllByText(
+      (_, element) => element?.textContent === "Lola Remedios — ₱28.00 off",
+    );
+    expect(matches.length).toBeGreaterThan(0);
   });
 });
