@@ -17,7 +17,20 @@ function pesosToCents(value: string): number {
   return Math.round(n * 100);
 }
 
-export function CartPanel({ onCheckout }: { onCheckout: () => void }) {
+/** Quick-pick discount chips — cents are derived from the current subtotal at click time, tapping again clears it. */
+const DISCOUNT_PRESETS: { label: string; cents: (subtotal_cents: number) => number }[] = [
+  { label: "10%", cents: (subtotal) => Math.round(subtotal * 0.1) },
+  { label: "20%", cents: (subtotal) => Math.round(subtotal * 0.2) },
+];
+
+export function CartPanel({
+  onCheckout,
+  unavailableProductIds = [],
+}: {
+  onCheckout: () => void;
+  /** Product ids the last checkout attempt rejected as no-longer-available — flagged on their cart line. */
+  unavailableProductIds?: number[];
+}) {
   const { lines, discount_cents, setDiscountCents, clear } = useCartStore();
   const currency = lines[0]?.currency ?? "PHP";
   const subtotal = subtotalCents(lines);
@@ -43,7 +56,11 @@ export function CartPanel({ onCheckout }: { onCheckout: () => void }) {
       ) : (
         <ul className="flex flex-1 flex-col gap-2 overflow-y-auto">
           {lines.map((line) => (
-            <CartLineItem key={line.localId} line={line} />
+            <CartLineItem
+              key={line.localId}
+              line={line}
+              unavailable={unavailableProductIds.includes(line.product_id)}
+            />
           ))}
         </ul>
       )}
@@ -55,24 +72,50 @@ export function CartPanel({ onCheckout }: { onCheckout: () => void }) {
             <span className="tabular-nums">{formatCents(subtotal, currency)}</span>
           </div>
 
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <label htmlFor="pos-discount" className="text-muted-foreground">
-              Discount
-            </label>
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">₱</span>
-              <Input
-                id="pos-discount"
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                className="h-8 w-24 text-right"
-                value={discount_cents === 0 ? "" : (discount_cents / 100).toString()}
-                onChange={(e) => setDiscountCents(pesosToCents(e.target.value))}
-                placeholder="0.00"
-              />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <label htmlFor="pos-discount" className="text-muted-foreground">
+                Discount
+              </label>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">₱</span>
+                <Input
+                  id="pos-discount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  className="h-8 w-24 text-right"
+                  value={discount_cents === 0 ? "" : (discount_cents / 100).toString()}
+                  onChange={(e) => setDiscountCents(pesosToCents(e.target.value))}
+                  placeholder="0.00"
+                />
+              </div>
             </div>
+
+            {subtotal > 0 && (
+              <div className="flex flex-wrap justify-end gap-1.5">
+                {DISCOUNT_PRESETS.map((preset) => {
+                  const presetCents = preset.cents(subtotal);
+                  const active = discount_cents === presetCents;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      className={
+                        "rounded-full border px-2.5 py-0.5 text-xs font-medium " +
+                        (active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:bg-muted")
+                      }
+                      onClick={() => setDiscountCents(active ? 0 : presetCents)}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between text-lg font-bold">

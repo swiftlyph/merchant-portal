@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconChevronDown, IconMinus, IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconChevronDown, IconMinus, IconPlus, IconTrash } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
 import { AddOnEditor } from "./add-on-editor";
@@ -7,12 +7,31 @@ import { lineTotalCents } from "../cart-math";
 import { useCartStore } from "../use-cart";
 import type { CartLine } from "../cart-types";
 
-export function CartLineItem({ line }: { line: CartLine }) {
+export function CartLineItem({
+  line,
+  unavailable = false,
+}: {
+  line: CartLine;
+  /** True when the last checkout attempt rejected this product as no-longer-available. */
+  unavailable?: boolean;
+}) {
   const { setQuantity, removeLine, addAddOn, removeAddOn } = useCartStore();
   const [addOnsOpen, setAddOnsOpen] = useState(false);
 
   return (
-    <li className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3">
+    <li
+      className={
+        "flex flex-col gap-2 rounded-xl border bg-card p-3" +
+        (unavailable ? " border-destructive/60 bg-destructive/5" : " border-border")
+      }
+    >
+      {unavailable && (
+        <div className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+          <IconAlertTriangle className="size-4 shrink-0" />
+          No longer available — remove to continue
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
           <span className="font-medium">{line.product_name}</span>

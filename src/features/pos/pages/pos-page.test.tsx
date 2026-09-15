@@ -109,6 +109,26 @@ describe("PosPage", () => {
     expect(await screen.findByText("ORD-000099")).toBeInTheDocument();
   });
 
+  it("discount preset chips fill the discount field and toggle off on a second tap", async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Espresso \(Single\)/ })); // ₱90.00
+    const chargeButton = () => screen.getByRole("button", { name: /^Charge ₱/ });
+
+    await user.click(screen.getByRole("button", { name: "10%" }));
+    expect(screen.getByLabelText("Discount")).toHaveValue(9);
+    expect(chargeButton()).toHaveTextContent("Charge ₱81.00"); // 10% off ₱90
+
+    await user.click(screen.getByRole("button", { name: "20%" }));
+    expect(screen.getByLabelText("Discount")).toHaveValue(18);
+    expect(chargeButton()).toHaveTextContent("Charge ₱72.00"); // 20% off ₱90
+
+    await user.click(screen.getByRole("button", { name: "20%" })); // tap again clears it
+    expect(screen.getByLabelText("Discount")).toHaveValue(null);
+    expect(chargeButton()).toHaveTextContent("Charge ₱90.00");
+  });
+
   it("clears the cart after a successful checkout", async () => {
     vi.mocked(posApi.checkout).mockResolvedValue(makeCheckoutResponse());
     renderPage();
@@ -186,7 +206,7 @@ describe("PosPage", () => {
     expect(await screen.findByText(/doesn't add up to the total/i)).toBeInTheDocument();
   });
 
-  it("renders product_unavailable with a clear cashier-facing message", async () => {
+  it("renders product_unavailable with a clear cashier-facing message and flags the cart line", async () => {
     vi.mocked(posApi.checkout).mockRejectedValue(
       new ApiError({ status: 422, message: "nope", code: "product_unavailable", errors: { product_ids: ["1"] } }),
     );
@@ -198,7 +218,10 @@ describe("PosPage", () => {
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: /^Charge/ }));
 
-    expect(await screen.findByText(/no longer available/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/some items are no longer available/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/no longer available — remove to continue/i)).toBeInTheDocument();
   });
 
   it("a network failure shows a retry-safe message and retrying resends the SAME idempotency key", async () => {

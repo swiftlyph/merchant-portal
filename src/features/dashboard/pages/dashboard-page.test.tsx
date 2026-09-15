@@ -221,13 +221,38 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("₱123.45")).toBeInTheDocument();
   });
 
+  it("shows average order value from sales-summary alongside revenue", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(
+      makeSalesSummary({ average_order_cents: 8025, average_order_formatted: "₱80.25" }),
+    );
+
+    renderDashboard();
+
+    expect(await screen.findByText("Average order")).toBeInTheDocument();
+    expect(await screen.findByText("₱80.25")).toBeInTheDocument();
+  });
+
+  it("shows today's payment-method mix from the same sales-summary query, no extra request", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    renderDashboard();
+
+    expect(await screen.findByText("Payment methods today")).toBeInTheDocument();
+    expect(await screen.findByText("Cash")).toBeInTheDocument();
+    expect(await screen.findByText("GCash")).toBeInTheDocument();
+    expect(await screen.findByText("Split")).toBeInTheDocument();
+    expect(reportsApi.fetchSalesSummary).toHaveBeenCalledTimes(1);
+  });
+
   it("a failing revenue-today card shows its own error without breaking the rest of the page", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
     vi.mocked(reportsApi.fetchSalesSummary).mockRejectedValue(new Error("Couldn't load revenue."));
 
     renderDashboard();
 
-    expect(await screen.findByText("Couldn't load revenue.")).toBeInTheDocument();
+    // Revenue today, Average order, and the payment-methods card all share
+    // this one query, so all three surface the same error — expected, not a bug.
+    expect(await screen.findAllByText("Couldn't load revenue.")).toHaveLength(3);
     expect(await screen.findByText("View all orders")).toBeInTheDocument();
   });
 
@@ -275,6 +300,8 @@ describe("DashboardPage permission gating", () => {
     expect(await screen.findByText("Pending in queue")).toBeInTheDocument();
     expect(screen.getByText("Orders today")).toBeInTheDocument();
     expect(screen.queryByText("Revenue today")).not.toBeInTheDocument();
+    expect(screen.queryByText("Average order")).not.toBeInTheDocument();
+    expect(screen.queryByText("Payment methods today")).not.toBeInTheDocument();
     // reports.view-gated request should never even fire for staff.
     expect(reportsApi.fetchSalesSummary).not.toHaveBeenCalled();
   });

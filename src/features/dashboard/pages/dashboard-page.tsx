@@ -1,4 +1,10 @@
-import { IconClockHour4, IconReceipt2, IconToolsKitchen2, IconCash } from "@tabler/icons-react";
+import {
+  IconClockHour4,
+  IconReceipt2,
+  IconToolsKitchen2,
+  IconCash,
+  IconReportMoney,
+} from "@tabler/icons-react";
 import { useAuthStore, useCan } from "@/features/auth/store";
 import { useMe } from "@/features/auth/use-me";
 import { useKitchenQueueSummary } from "@/features/kitchen-queue/use-kitchen-queue-summary";
@@ -8,6 +14,7 @@ import { todayDateParam } from "../today";
 import { GreetingHeader } from "../components/greeting-header";
 import { QuickActions } from "../components/quick-actions";
 import { StatCard } from "../components/stat-card";
+import { PaymentMethodsMini } from "../components/payment-methods-mini";
 import { RecentOrdersCard } from "../components/recent-orders-card";
 import { useOrdersToday } from "../use-orders-today";
 
@@ -43,13 +50,28 @@ export function DashboardPage() {
 
       <QuickActions />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-        {/* No revenue card without reports.view — the other cards still fill the row. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {/* No revenue/average-order cards without reports.view — the other cards still fill the row. */}
         {canViewReports && (
           <StatCard
             label="Revenue today"
             icon={<IconCash className="size-4" />}
             value={revenueToday.data?.net_formatted}
+            isPending={revenueToday.isPending}
+            isError={revenueToday.isError}
+            errorMessage={
+              revenueToday.error instanceof Error ? revenueToday.error.message : undefined
+            }
+            onRetry={() => void revenueToday.refetch()}
+            href="/app/reports"
+          />
+        )}
+
+        {canViewReports && (
+          <StatCard
+            label="Average order"
+            icon={<IconReportMoney className="size-4" />}
+            value={revenueToday.data?.average_order_formatted}
             isPending={revenueToday.isPending}
             isError={revenueToday.isError}
             errorMessage={
@@ -98,6 +120,19 @@ export function DashboardPage() {
           onRetry={() => void ordersToday.refetch()}
         />
       </div>
+
+      {/* Same reports.view gate and same query as the revenue/average-order cards above — no extra request. */}
+      {canViewReports && (
+        <PaymentMethodsMini
+          summary={revenueToday.data}
+          isPending={revenueToday.isPending}
+          isError={revenueToday.isError}
+          errorMessage={
+            revenueToday.error instanceof Error ? revenueToday.error.message : undefined
+          }
+          onRetry={() => void revenueToday.refetch()}
+        />
+      )}
 
       <RecentOrdersCard />
     </div>

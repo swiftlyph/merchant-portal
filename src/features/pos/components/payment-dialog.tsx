@@ -40,10 +40,13 @@ export function PaymentDialog({
   open,
   onOpenChange,
   onSuccess,
+  onUnavailableProducts,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: (order: CheckoutResponse) => void;
+  /** Called with the product ids the server rejected as no-longer-available, so the cart can flag them. */
+  onUnavailableProducts: (productIds: number[]) => void;
 }) {
   const { lines, discount_cents, clear } = useCartStore();
   const { charge, isPending, reset } = useCheckout();
@@ -122,6 +125,7 @@ export function PaymentDialog({
     } catch (error) {
       const info = describeCheckoutError(error);
       setErrorMessage(info.message);
+      onUnavailableProducts(info.unavailableProductIds?.map(Number) ?? []);
       if (info.requiresNewKey) {
         reset();
       }

@@ -21,6 +21,7 @@ export function PosPage() {
   const { data, isPending, isError, error, refetch } = useMenu();
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<CheckoutResponse | null>(null);
+  const [unavailableProductIds, setUnavailableProductIds] = useState<number[]>([]);
 
   if (isError) {
     return (
@@ -47,13 +48,17 @@ export function PosPage() {
       </div>
 
       <div className="flex w-full flex-col lg:w-96 lg:shrink-0">
-        <CartPanel onCheckout={() => setPaymentOpen(true)} />
+        <CartPanel onCheckout={() => setPaymentOpen(true)} unavailableProductIds={unavailableProductIds} />
       </div>
 
       <PaymentDialog
         open={paymentOpen}
-        onOpenChange={setPaymentOpen}
+        onOpenChange={(next) => {
+          setPaymentOpen(next);
+          if (next) setUnavailableProductIds([]);
+        }}
         onSuccess={(order) => setCompletedOrder(order)}
+        onUnavailableProducts={setUnavailableProductIds}
       />
 
       <SuccessDialog order={completedOrder} onNewOrder={() => setCompletedOrder(null)} />
