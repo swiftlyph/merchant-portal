@@ -71,7 +71,7 @@ export function OpenCashDrawerPanel({ onOpened }: { onOpened: () => void }) {
         <h2 className="text-lg font-semibold">The cash drawer is closed</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
           Open the cash drawer to start a shift. Count the starting cash and enter it below —
-          this becomes the opening float for reconciliation.
+          this becomes the starting cash for this shift.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ export function OpenCashDrawerPanel({ onOpened }: { onOpened: () => void }) {
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="cash-drawer-opening-float" className="text-xs text-muted-foreground">
-            Opening float
+            Starting cash
           </label>
           <Input
             id="cash-drawer-opening-float"

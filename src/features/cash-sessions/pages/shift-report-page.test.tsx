@@ -38,19 +38,19 @@ describe("ShiftReportPage", () => {
     renderReportPage();
 
     for (const label of [
-      "Cash sales (gross)",
+      "Cash sales",
       "Voided cash",
       "Cash in",
       "Cash out",
-      "Confirmed remittances",
+      "Cash sent out (confirmed)",
       "Expected cash",
       "Counted cash",
     ]) {
       expect(await screen.findByText(label)).toBeInTheDocument();
     }
-    // "Opening float" appears twice by design — once in the sales summary,
-    // once in the cash reconciliation block, matching the panel's own row.
-    expect(await screen.findAllByText("Opening float")).toHaveLength(2);
+    // "Starting cash" appears twice by design — once in the sales summary,
+    // once in the cash count block, matching the panel's own row.
+    expect(await screen.findAllByText("Starting cash")).toHaveLength(2);
   });
 
   it("shows the PRELIMINARY mark for an open session and no counted/variance", async () => {

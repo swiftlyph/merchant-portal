@@ -63,8 +63,8 @@ export function CashDrawerPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold">Cash Drawer</h1>
         <p className="text-sm text-muted-foreground">
-          Open at the start of a shift, record cash movements as they happen, and reconcile when
-          you close.
+          Open at the start of a shift, record cash movements as they happen, and count the
+          drawer when you close.
         </p>
       </div>
 

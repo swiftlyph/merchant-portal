@@ -112,7 +112,7 @@ describe("CashDrawerPage", () => {
       renderCashDrawerPage();
       await screen.findByText("The cash drawer is closed");
 
-      await user.type(screen.getByLabelText("Opening float"), "500");
+      await user.type(screen.getByLabelText("Starting cash"), "500");
       await user.click(screen.getByRole("button", { name: "Open cash drawer" }));
 
       await waitFor(() => {
@@ -140,7 +140,7 @@ describe("CashDrawerPage", () => {
       renderCashDrawerPage();
       await screen.findByText("The cash drawer is closed");
 
-      await user.type(screen.getByLabelText("Opening float"), "500");
+      await user.type(screen.getByLabelText("Starting cash"), "500");
       await user.click(screen.getByRole("button", { name: "Open cash drawer" }));
 
       expect(await screen.findByText("Expected cash")).toBeInTheDocument();
@@ -356,7 +356,7 @@ describe("CashDrawerPage", () => {
       // First click only asks for confirmation — does not close yet.
       await user.click(within(dialog).getByRole("button", { name: "Close cash drawer" }));
       expect(cashSessionsApi.closeSession).not.toHaveBeenCalled();
-      expect(screen.getByText(/Closing will record this variance permanently/)).toBeInTheDocument();
+      expect(screen.getByText(/Closing will record this difference permanently/)).toBeInTheDocument();
 
       await user.click(within(dialog).getByRole("button", { name: "Confirm and close cash drawer" }));
 

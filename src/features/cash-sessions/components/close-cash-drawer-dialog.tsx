@@ -115,14 +115,14 @@ export function CloseCashDrawerDialog({
           <>
             <DialogHeader>
               <DialogTitle>Cash drawer closed</DialogTitle>
-              <DialogDescription>Here's the final reconciliation for this shift.</DialogDescription>
+              <DialogDescription>Here's the final count for this shift.</DialogDescription>
             </DialogHeader>
 
             <dl className="flex flex-col gap-2 text-sm">
               <SummaryRow label="Expected" value={result.reconciliation.expected_cash_cents} />
               <SummaryRow label="Counted" value={result.reconciliation.counted_cash_cents ?? 0} />
               <SummaryRow
-                label="Variance"
+                label="Difference"
                 value={result.reconciliation.variance_cents ?? 0}
                 emphasize
               />
@@ -199,7 +199,7 @@ export function CloseCashDrawerDialog({
                         : "bg-destructive/10 text-destructive")
                   }
                 >
-                  <span>Variance</span>
+                  <span>Difference</span>
                   <span className="tabular-nums">{variance.text}</span>
                 </div>
               )}
@@ -220,8 +220,8 @@ export function CloseCashDrawerDialog({
                 <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   <IconAlertTriangle className="mt-0.5 size-4 shrink-0" />
                   <span>
-                    The count is {variance.text.toLowerCase()}. Closing will record this variance
-                    permanently — confirm to proceed.
+                    The count is {variance.text.toLowerCase()}. Closing will record this
+                    difference permanently — confirm to proceed.
                   </span>
                 </div>
               )}

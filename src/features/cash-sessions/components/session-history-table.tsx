@@ -88,10 +88,10 @@ export function SessionHistoryTable() {
           <TableRow>
             <TableHead>Opened</TableHead>
             <TableHead>Closed</TableHead>
-            <TableHead>Opening float</TableHead>
+            <TableHead>Starting cash</TableHead>
             <TableHead>Expected</TableHead>
             <TableHead>Counted</TableHead>
-            <TableHead>Variance</TableHead>
+            <TableHead>Difference</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>

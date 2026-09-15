@@ -85,7 +85,7 @@ export function SessionDetailPage() {
         <div className="flex flex-wrap gap-6 rounded-2xl border border-border p-5 text-sm">
           <SummaryStat label="Counted cash" value={formatCents(session.reconciliation.counted_cash_cents ?? 0)} />
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">Variance</span>
+            <span className="text-xs text-muted-foreground">Difference</span>
             <span className="font-medium tabular-nums">
               <VarianceBadge varianceCents={session.reconciliation.variance_cents} />
             </span>

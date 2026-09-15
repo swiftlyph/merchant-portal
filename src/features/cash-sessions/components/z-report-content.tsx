@@ -39,10 +39,10 @@ export function ZReportContent({ report }: { report: ZReport }) {
 
       <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">
         <div className="text-center font-bold">Sales summary</div>
-        <Row label="Opening float" value={float.opening_float_formatted} />
+        <Row label="Starting cash" value={float.opening_float_formatted} />
         <Row label="Orders" value={String(sales.orders_count)} />
         <Row label="Voided" value={String(sales.voided_count)} />
-        <Row label="Gross" value={sales.gross_formatted} />
+        <Row label="Total sales" value={sales.gross_formatted} />
         <Row label="Discounts" value={`-${sales.discounts_formatted}`} />
         <Row label="Net" value={sales.net_formatted} emphasize />
       </div>
@@ -78,19 +78,19 @@ export function ZReportContent({ report }: { report: ZReport }) {
       )}
 
       <div className="flex flex-col gap-0.5 border-t border-dashed border-black/40 pt-2">
-        <div className="text-center font-bold">Cash reconciliation</div>
-        <Row label="Opening float" value={float.opening_float_formatted} />
-        <Row label="Cash sales (gross)" value={cash.cash_sales_gross_formatted} />
+        <div className="text-center font-bold">Cash count</div>
+        <Row label="Starting cash" value={float.opening_float_formatted} />
+        <Row label="Cash sales" value={cash.cash_sales_gross_formatted} />
         <Row label="Voided cash" value={`-${cash.voided_cash_formatted}`} />
         <Row label="Cash in" value={cash.cash_in_formatted} />
         <Row label="Cash out" value={`-${cash.cash_out_formatted}`} />
-        <Row label="Confirmed remittances" value={`-${cash.confirmed_remittances_formatted}`} />
+        <Row label="Cash sent out (confirmed)" value={`-${cash.confirmed_remittances_formatted}`} />
         <Row label="Expected cash" value={cash.expected_cash_formatted} emphasize />
         {cash.counted_cash_formatted !== null ? (
           <>
             <Row label="Counted cash" value={cash.counted_cash_formatted} emphasize />
             <div className="flex justify-between font-bold">
-              <span>Variance</span>
+              <span>Difference</span>
               <VarianceBadge varianceCents={cash.variance_cents} />
             </div>
           </>
