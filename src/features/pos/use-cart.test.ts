@@ -44,6 +44,21 @@ describe("cart store", () => {
     expect(useCartStore.getState().lines).toHaveLength(2);
   });
 
+  it("re-tapping a product still merges into its existing bare line even after other products were tapped in between", async () => {
+    const { useCartStore } = await import("./use-cart");
+    const espresso = makeProduct({ id: 1, name: "Espresso" });
+    const matcha = makeProduct({ id: 2, name: "Matcha Latte" });
+
+    useCartStore.getState().addProduct(espresso);
+    useCartStore.getState().addProduct(matcha);
+    useCartStore.getState().addProduct(espresso);
+
+    const { lines } = useCartStore.getState();
+    expect(lines).toHaveLength(2);
+    const espressoLine = lines.find((l) => l.product_id === 1);
+    expect(espressoLine?.quantity).toBe(2);
+  });
+
   it("a line with add-ons is never silently incremented by a later tap of the same product", async () => {
     const { useCartStore } = await import("./use-cart");
     const product = makeProduct({ id: 1 });

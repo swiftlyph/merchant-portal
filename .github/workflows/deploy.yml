@@ -1,0 +1,29 @@
+name: Deploy
+
+# Fires only after CI finishes on main, and only if it succeeded — never
+# deploys code that hasn't passed lint/typecheck/test/build.
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /var/www/merchant-portal
+            sudo git pull origin main
+            sudo npm ci
+            # This box has ~950MB RAM — plain vite build OOMs without this.
+            sudo NODE_OPTIONS="--max-old-space-size=2048" npm run build

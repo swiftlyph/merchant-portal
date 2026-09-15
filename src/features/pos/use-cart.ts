@@ -54,7 +54,7 @@ function clearStoredCart(): void {
 export interface CartState {
   lines: CartLine[];
   discount_cents: number;
-  /** Adds one unit of a product as a new line, or increments quantity if that exact product is already the LAST-added line with no add-ons (a fast "tap tap tap" repeat-order path); a product with add-ons always gets its own line so its add-ons aren't accidentally shared. */
+  /** Adds one unit of a product as a new line, or increments quantity if that exact product already has a bare (no add-ons) line anywhere in the cart (a fast "tap tap tap" repeat-order path, even with other products tapped in between); a product with add-ons always gets its own line so its add-ons aren't accidentally shared. */
   addProduct: (product: MenuProduct) => void;
   setQuantity: (localId: string, quantity: number) => void;
   removeLine: (localId: string) => void;
@@ -82,11 +82,13 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   addProduct: (product) =>
     persistAndSet(set, get, (state) => {
-      const last = state.lines.at(-1);
-      if (last && last.product_id === product.id && last.add_ons.length === 0) {
+      const mergeable = state.lines.find(
+        (line) => line.product_id === product.id && line.add_ons.length === 0,
+      );
+      if (mergeable) {
         return {
           lines: state.lines.map((line) =>
-            line.localId === last.localId ? { ...line, quantity: line.quantity + 1 } : line,
+            line.localId === mergeable.localId ? { ...line, quantity: line.quantity + 1 } : line,
           ),
           discount_cents: state.discount_cents,
         };
