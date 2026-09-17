@@ -41,7 +41,7 @@ function isStockStatus(value: string): value is StockStatus {
 }
 
 /**
- * `/app/ingredients`. Ingredients ARE this merchant's inventory — a
+ * `/app/inventory`. Ingredients ARE this merchant's inventory — a
  * product carries no stock of its own, only its recipe's ingredients do
  * (see the Products page's "Recipe" column/dialog). Stock status, page and
  * page size live in the URL (?status=&page=&per_page=) and drive the
@@ -93,7 +93,7 @@ export function IngredientsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">Ingredients</h1>
+          <h1 className="text-2xl font-bold">Inventory</h1>
           <p className="text-sm text-muted-foreground">
             Stock on hand for every ingredient. Attach one to a product&apos;s recipe from the
             Products page to have sales deduct it automatically.
