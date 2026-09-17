@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCents } from "./money";
+import { formatCents, parseAmountToCents } from "./money";
 
 describe("formatCents", () => {
   it("formats integer cents as PHP currency", () => {
@@ -24,5 +24,28 @@ describe("formatCents", () => {
 
   it("supports a different currency code", () => {
     expect(formatCents(15000, "USD")).toBe("$150.00");
+  });
+});
+
+describe("parseAmountToCents", () => {
+  it("parses whole and fractional amounts to integer cents", () => {
+    expect(parseAmountToCents("150")).toBe(15000);
+    expect(parseAmountToCents("150.5")).toBe(15050);
+    expect(parseAmountToCents("150.50")).toBe(15050);
+    expect(parseAmountToCents("0.29")).toBe(29);
+    expect(parseAmountToCents("0")).toBe(0);
+  });
+
+  it("tolerates a currency symbol, thousands separators and whitespace", () => {
+    expect(parseAmountToCents("₱1,250.00")).toBe(125000);
+    expect(parseAmountToCents(" $ 85 ")).toBe(8500);
+  });
+
+  it("rejects negatives, more than two decimals, and non-numeric input", () => {
+    expect(parseAmountToCents("-5")).toBeNull();
+    expect(parseAmountToCents("1.234")).toBeNull();
+    expect(parseAmountToCents("abc")).toBeNull();
+    expect(parseAmountToCents("")).toBeNull();
+    expect(parseAmountToCents(".5")).toBeNull();
   });
 });
