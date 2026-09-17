@@ -24,7 +24,8 @@ interface NavMainItem {
 /**
  * Flat top-level nav — no sub-items, unlike the stock sidebar-07 block
  * (Playground/Models/etc. with Collapsible groups). This app's nav is one
- * level: Dashboard, POS, Queue, Orders, Cash Drawer, Reports, Settings.
+ * level: Dashboard, POS, Queue, Orders, Ingredients, Cash Drawer,
+ * Reports, Settings.
  */
 export function NavMain({ items }: { items: NavMainItem[] }) {
   return (
