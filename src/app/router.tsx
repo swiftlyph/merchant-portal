@@ -11,6 +11,8 @@ import { KitchenQueuePage } from "@/features/kitchen-queue/pages/kitchen-queue-p
 import { OrdersPage } from "@/features/orders/pages/orders-page";
 import { OrderDetailPage } from "@/features/orders/pages/order-detail-page";
 import { ReceiptPage } from "@/features/orders/pages/receipt-page";
+import { ProductsPage } from "@/features/products/pages/products-page";
+import { IngredientsPage } from "@/features/ingredients/pages/ingredients-page";
 import { CashDrawerPage } from "@/features/cash-sessions/pages/cash-drawer-page";
 import { SessionDetailPage } from "@/features/cash-sessions/pages/session-detail-page";
 import { ShiftReportPage } from "@/features/cash-sessions/pages/shift-report-page";
@@ -85,6 +87,8 @@ export const router = createBrowserRouter([
         element: <OrderDetailPage />,
         handle: { title: "Order detail", parentTitle: "Orders", parentPath: "/app/orders" },
       },
+      { path: "products", element: <ProductsPage />, handle: { title: "Products" } },
+      { path: "ingredients", element: <IngredientsPage />, handle: { title: "Ingredients" } },
       { path: "cash-drawer", element: <CashDrawerPage />, handle: { title: "Cash Drawer" } },
       {
         path: "cash-drawer/sessions/:id",

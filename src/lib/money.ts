@@ -32,3 +32,19 @@ function formatterFor(currency: string): Intl.NumberFormat {
 export function formatCents(cents: number, currency = "PHP"): string {
   return formatterFor(currency).format(cents / 100);
 }
+
+/**
+ * Parses a user-typed peso amount ("150", "150.5", "1,250.00", "₱85") into
+ * integer cents without ever going through a float: the string is split on
+ * the decimal point and the fraction is padded, so "0.29" is exactly 29.
+ * Returns null for anything that isn't a non-negative amount with at most
+ * two decimals.
+ */
+export function parseAmountToCents(input: string): number | null {
+  const cleaned = input.replace(/[₱$,\s]/g, "");
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(cleaned);
+  if (!match) return null;
+  const whole = Number(match[1]);
+  const fraction = (match[2] ?? "").padEnd(2, "0");
+  return whole * 100 + Number(fraction);
+}

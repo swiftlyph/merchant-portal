@@ -3,6 +3,8 @@ import {
   CreditCardIcon,
   ClockIcon,
   ClipboardListIcon,
+  PackageIcon,
+  BoxesIcon,
   WalletIcon,
   BarChart3Icon,
   SettingsIcon,
@@ -60,6 +62,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       badge: kitchenSummary?.pending_count ? kitchenSummary.pending_count : undefined,
     },
     { title: "Orders", url: "/app/orders", icon: <ClipboardListIcon /> },
+    { title: "Products", url: "/app/products", icon: <PackageIcon /> },
+    { title: "Ingredients", url: "/app/ingredients", icon: <BoxesIcon /> },
     { title: "Cash Drawer", url: "/app/cash-drawer", icon: <WalletIcon /> },
     ...(canViewReports
       ? [{ title: "Reports", url: "/app/reports", icon: <BarChart3Icon /> }]
