@@ -37,7 +37,7 @@ target is still undecided.
 implementing the auth contract below (login/me/logout) plus the Products,
 Recipe and Ingredients endpoints with a small seeded catalog, for
 developing against when the real backend isn't running. It's generated from
-the "Auth", "API error shape", "Products" and "Ingredients" sections of this
+the "Auth", "API error shape", "Products" and "Inventory" sections of this
 README, **not** from the backend's source. Orders are not mocked: any other
 `/merchant/*` route answers with an empty list.
 
@@ -96,7 +96,7 @@ wrapping an `<Outlet />` for four nested routes:
 | `/app/kitchen-queue` | `KitchenQueuePage` | `PlaceholderPage` |
 | `/app/orders` | `OrdersPage` | Real: list + detail with complete/void |
 | `/app/products` | `ProductsPage` | Real: full CRUD, plus each product's recipe |
-| `/app/ingredients` | `IngredientsPage` | Real: full CRUD — this merchant's actual inventory |
+| `/app/inventory` | `IngredientsPage` | Real: full CRUD — this merchant's actual inventory |
 
 `/app` index-redirects to `/app/dashboard`. `PlaceholderPage` (dashed border,
 "This section is coming soon") is the shared stand-in until each section has
@@ -106,7 +106,7 @@ Paginated lists share `src/lib/api/pagination.ts` (Laravel's
 `{ data, links, meta }` envelope, a defensive `normalizePage`, and
 `buildQueryString`) and `src/components/list-pagination.tsx` (prev/next
 pager, plus an optional rows-per-page select — pass `perPage`/
-`onPerPageChange` to opt in, as Products and Ingredients both do). The
+`onPerPageChange` to opt in, as Products and Inventory both do). The
 orders feature predates both and still carries its own copies.
 
 ## Products
@@ -115,7 +115,7 @@ orders feature predates both and still carries its own copies.
 page and page size live in the URL (`?status=&page=&per_page=`) and drive
 the server query; the search box filters the loaded page client-side by
 name or product ID. Page size defaults to **15** with a rows-per-page
-control (`<ListPagination>`, shared with Ingredients below) offering
+control (`<ListPagination>`, shared with Inventory below) offering
 15/25/50; changing it resets to page 1.
 
 **Product ID, not SKU.** Every product has a `code` like `DRK-001`, shown
@@ -239,14 +239,15 @@ now. The list returns `{ data: Product[], links, meta }`; `show`/`store`/
 `update`/the recipe endpoint all return a flat `Product`. An unknown
 `status` is a 422 `validation_failed`.
 
-## Ingredients
+## Inventory
 
-`src/features/ingredients/`. Ingredients ARE this merchant's inventory —
-a product carries no stock of its own; only its recipe's ingredients do
-(see § Recipe above). Full CRUD at `/app/ingredients`: stock-status
-filter, page and page size live in the URL (`?status=&page=&per_page=`);
-the search box filters the loaded page client-side by name or ingredient
-ID. Same 15/25/50 rows-per-page control as Products, defaulting to 15.
+`src/features/ingredients/` (the page is titled "Inventory" — this
+merchant's ingredients ARE their inventory; a product carries no stock of
+its own, only its recipe's ingredients do — see § Recipe above). Full
+CRUD at `/app/inventory`: stock-status filter, page and page size live in
+the URL (`?status=&page=&per_page=`); the search box filters the loaded
+page client-side by name or ingredient ID. Same 15/25/50 rows-per-page
+control as Products, defaulting to 15.
 
 Every quantity is entered and shown in the ingredient's own `display_unit`
 — the frontend never converts between units itself (mg/g/kg, ml/L, pcs are
@@ -381,7 +382,7 @@ concern, not a login error.
 
 Sidebar shell (`DashboardLayout`) with six nested routes. Orders (list,
 detail, complete/void), Products (list, add, view, edit, delete, recipe),
-and Ingredients (list, add, edit, delete) are all real; POS and Kitchen
-Queue are still `PlaceholderPage`. Orders/Products/Ingredients all target
+and Inventory (list, add, edit, delete) are all real; POS and Kitchen
+Queue are still `PlaceholderPage`. Orders/Products/Inventory all target
 the real gasa-api backend and also render against the mock API for
 offline dev.

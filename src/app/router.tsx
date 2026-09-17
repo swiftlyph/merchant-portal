@@ -88,7 +88,7 @@ export const router = createBrowserRouter([
         handle: { title: "Order detail", parentTitle: "Orders", parentPath: "/app/orders" },
       },
       { path: "products", element: <ProductsPage />, handle: { title: "Products" } },
-      { path: "ingredients", element: <IngredientsPage />, handle: { title: "Ingredients" } },
+      { path: "inventory", element: <IngredientsPage />, handle: { title: "Inventory" } },
       { path: "cash-drawer", element: <CashDrawerPage />, handle: { title: "Cash Drawer" } },
       {
         path: "cash-drawer/sessions/:id",

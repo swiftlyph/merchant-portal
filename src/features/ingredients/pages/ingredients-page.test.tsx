@@ -24,14 +24,14 @@ function LocationProbe() {
   return <div data-testid="location">{location.pathname + location.search}</div>;
 }
 
-function renderIngredientsPage(initialEntry = "/app/ingredients") {
+function renderIngredientsPage(initialEntry = "/app/inventory") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <LocationProbe />
         <Routes>
-          <Route path="/app/ingredients" element={<IngredientsPage />} />
+          <Route path="/app/inventory" element={<IngredientsPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -97,7 +97,7 @@ describe("IngredientsPage", () => {
   it("initializes filters from the URL, defaulting to 15 rows per page", async () => {
     vi.mocked(ingredientsApi.fetchIngredients).mockResolvedValue(makeIngredientsPage());
 
-    renderIngredientsPage("/app/ingredients?status=low_stock&page=2");
+    renderIngredientsPage("/app/inventory?status=low_stock&page=2");
 
     await waitFor(() =>
       expect(ingredientsApi.fetchIngredients).toHaveBeenCalledWith({
@@ -118,7 +118,7 @@ describe("IngredientsPage", () => {
     await user.click(await screen.findByRole("option", { name: "Low stock" }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent("/app/ingredients?status=low_stock"),
+      expect(screen.getByTestId("location")).toHaveTextContent("/app/inventory?status=low_stock"),
     );
     await waitFor(() =>
       expect(ingredientsApi.fetchIngredients).toHaveBeenLastCalledWith({
@@ -153,7 +153,7 @@ describe("IngredientsPage", () => {
     vi.mocked(ingredientsApi.fetchIngredients).mockResolvedValue(
       makeIngredientsPage({ data: [makeIngredient({ name: "Matcha Powder" })] }),
     );
-    renderIngredientsPage("/app/ingredients?status=low_stock&q=nope");
+    renderIngredientsPage("/app/inventory?status=low_stock&q=nope");
     const user = userEvent.setup();
 
     await user.click(await screen.findByRole("button", { name: "Clear filters" }));
@@ -250,7 +250,7 @@ describe("IngredientsPage", () => {
         },
       }),
     );
-    renderIngredientsPage("/app/ingredients?page=2");
+    renderIngredientsPage("/app/inventory?page=2");
     const user = userEvent.setup();
 
     const perPageTrigger = await screen.findByLabelText("Rows per page");
