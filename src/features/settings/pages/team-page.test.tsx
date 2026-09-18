@@ -17,6 +17,7 @@ vi.mock("../api", () => ({
   addTeamMember: vi.fn(),
   updateTeamMember: vi.fn(),
   removeTeamMember: vi.fn(),
+  resetTeamMemberPassword: vi.fn(),
 }));
 
 function renderTeamPage() {
@@ -68,6 +69,7 @@ describe("TeamPage", () => {
 
     const ownerRow = screen.getByText("merchant@gasa.test").closest("tr")!;
     expect(within(ownerRow).queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(within(ownerRow).queryByRole("button", { name: "Reset password" })).not.toBeInTheDocument();
 
     const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
     expect(within(memberRow).getByRole("button", { name: "Remove" })).toBeInTheDocument();
@@ -152,6 +154,82 @@ describe("TeamPage", () => {
     });
   });
 
+  it("resets a member's password behind the confirm dialog and shows the fresh link", async () => {
+    vi.mocked(settingsApi.fetchTeam).mockResolvedValue(makeTeamMembersResponse());
+    vi.mocked(settingsApi.resetTeamMemberPassword).mockResolvedValue({
+      message: "Password reset.",
+      code: "team_member_password_reset",
+      invite: {
+        token: "reset-token-xyz",
+        expires_at: "2026-09-22T00:00:00.000Z",
+        url: "/accept-invite?token=reset-token-xyz",
+      },
+    });
+
+    renderTeamPage();
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    await screen.findByText("jamie@merchantone.test");
+
+    const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
+    await user.click(within(memberRow).getByRole("button", { name: "Reset password" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(settingsApi.resetTeamMemberPassword).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "Reset password" }));
+
+    await waitFor(() => {
+      expect(settingsApi.resetTeamMemberPassword).toHaveBeenCalledWith(2);
+    });
+    expect(await screen.findByDisplayValue("/accept-invite?token=reset-token-xyz")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Copy reset link" }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("/accept-invite?token=reset-token-xyz");
+    });
+  });
+
+  it("explains that no reset link is available when the backend returns none", async () => {
+    vi.mocked(settingsApi.fetchTeam).mockResolvedValue(makeTeamMembersResponse());
+    vi.mocked(settingsApi.resetTeamMemberPassword).mockResolvedValue({
+      message: "Password reset.",
+      code: "team_member_password_reset",
+    });
+
+    renderTeamPage();
+    const user = userEvent.setup();
+    await screen.findByText("jamie@merchantone.test");
+
+    const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
+    await user.click(within(memberRow).getByRole("button", { name: "Reset password" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Reset password" }));
+
+    expect(await screen.findByText(/no reset link is available in this environment/i)).toBeInTheDocument();
+  });
+
+  it("shows a plain-language message when resetting the owner is refused", async () => {
+    vi.mocked(settingsApi.fetchTeam).mockResolvedValue(makeTeamMembersResponse());
+    vi.mocked(settingsApi.resetTeamMemberPassword).mockRejectedValue(
+      new ApiError({
+        status: 422,
+        message: "The merchant's owner password cannot be reset from the team.",
+        code: "cannot_reset_owner_password",
+      }),
+    );
+
+    renderTeamPage();
+    const user = userEvent.setup();
+    await screen.findByText("jamie@merchantone.test");
+
+    const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
+    await user.click(within(memberRow).getByRole("button", { name: "Reset password" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Reset password" }));
+
+    expect(await screen.findByText("The merchant's owner password can't be reset from the team.")).toBeInTheDocument();
+  });
+
   it("shows a plain-language message for member_already_exists without leaking merchant info", async () => {
     vi.mocked(settingsApi.fetchTeam).mockResolvedValue(makeTeamMembersResponse());
     vi.mocked(settingsApi.addTeamMember).mockRejectedValue(
@@ -231,6 +309,7 @@ describe("TeamPage permission gating", () => {
 
     const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
     expect(within(memberRow).queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(within(memberRow).queryByRole("button", { name: "Reset password" })).not.toBeInTheDocument();
   });
 
   it("with team.manage: Add, role select, and Remove are all present", async () => {
@@ -257,5 +336,6 @@ describe("TeamPage permission gating", () => {
 
     const memberRow = screen.getByText("jamie@merchantone.test").closest("tr")!;
     expect(within(memberRow).getByRole("button", { name: "Remove" })).toBeInTheDocument();
+    expect(within(memberRow).getByRole("button", { name: "Reset password" })).toBeInTheDocument();
   });
 });

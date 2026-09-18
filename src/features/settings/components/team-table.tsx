@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuthStore, useCan } from "@/features/auth/store";
 import { RoleSelect } from "./role-select";
 import { RemoveMemberDialog } from "./remove-member-dialog";
+import { ResetPasswordDialog } from "./reset-password-dialog";
 import { useUpdateTeamMember } from "../use-update-team-member";
 import { describeUpdateMemberError } from "../errors";
 import { formatDate, ROLE_LABEL } from "../format";
@@ -13,6 +14,7 @@ import type { RoleInMerchant, TeamMember } from "../types";
 export function TeamTable({ members }: { members: TeamMember[] }) {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
+  const [resetTarget, setResetTarget] = useState<TeamMember | null>(null);
 
   return (
     <>
@@ -33,6 +35,7 @@ export function TeamTable({ members }: { members: TeamMember[] }) {
               member={member}
               isCurrentUser={member.id === currentUserId}
               onRequestRemove={() => setRemoveTarget(member)}
+              onRequestReset={() => setResetTarget(member)}
             />
           ))}
         </TableBody>
@@ -45,6 +48,14 @@ export function TeamTable({ members }: { members: TeamMember[] }) {
           member={removeTarget}
         />
       )}
+
+      {resetTarget && (
+        <ResetPasswordDialog
+          open
+          onOpenChange={(open) => !open && setResetTarget(null)}
+          member={resetTarget}
+        />
+      )}
     </>
   );
 }
@@ -53,10 +64,12 @@ function TeamRow({
   member,
   isCurrentUser,
   onRequestRemove,
+  onRequestReset,
 }: {
   member: TeamMember;
   isCurrentUser: boolean;
   onRequestRemove: () => void;
+  onRequestReset: () => void;
 }) {
   const { mutate, isPending } = useUpdateTeamMember();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -109,11 +122,16 @@ function TeamRow({
       </TableCell>
       <TableCell className="text-muted-foreground">{formatDate(member.created_at)}</TableCell>
       <TableCell className="text-right">
-        {/* No remove action for the owner row (does not apply) or without team.manage — absent, not disabled, either way. */}
+        {/* No reset/remove action for the owner row (does not apply) or without team.manage — absent, not disabled, either way. */}
         {!member.is_owner && canManageTeam && (
-          <Button variant="ghost" size="sm" onClick={onRequestRemove}>
-            Remove
-          </Button>
+          <>
+            <Button variant="ghost" size="sm" onClick={onRequestReset}>
+              Reset password
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onRequestRemove}>
+              Remove
+            </Button>
+          </>
         )}
       </TableCell>
     </TableRow>

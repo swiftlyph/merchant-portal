@@ -4,6 +4,7 @@ import type {
   AddTeamMemberResponse,
   MerchantProfile,
   RemoveTeamMemberResponse,
+  ResetTeamMemberPasswordResponse,
   TeamMember,
   TeamMembersResponse,
   UpdateMerchantProfileRequest,
@@ -84,4 +85,8 @@ export function updateTeamMember(
 
 export function removeTeamMember(userId: number): Promise<RemoveTeamMemberResponse> {
   return api.delete<RemoveTeamMemberResponse>(`/merchant/team/${userId}`);
+}
+
+export function resetTeamMemberPassword(userId: number): Promise<ResetTeamMemberPasswordResponse> {
+  return api.post<ResetTeamMemberPasswordResponse>(`/merchant/team/${userId}/reset-password`);
 }

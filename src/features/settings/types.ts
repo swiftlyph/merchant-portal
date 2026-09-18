@@ -125,3 +125,18 @@ export interface RemoveTeamMemberResponse {
   message: string;
   code: string;
 }
+
+/**
+ * POST /merchant/team/{user}/reset-password response — like
+ * AddTeamMemberResponse, `invite` is only present in local/development
+ * environments (TeamController::resetPassword).
+ */
+export interface ResetTeamMemberPasswordResponse {
+  message: string;
+  code: string;
+  invite?: {
+    token: string;
+    expires_at: string;
+    url: string;
+  };
+}

@@ -58,3 +58,16 @@ export function describeRemoveMemberError(error: unknown): string {
   }
   return error instanceof Error ? error.message : "Couldn't remove that team member.";
 }
+
+export function describeResetPasswordError(error: unknown): string {
+  if (isPermissionDenied(error)) {
+    return describePermissionDenied(error, "Couldn't reset that team member's password.");
+  }
+  if (error instanceof ApiError) {
+    if (error.code === "cannot_reset_owner_password") {
+      return "The merchant's owner password can't be reset from the team.";
+    }
+    return error.message || "Couldn't reset that team member's password.";
+  }
+  return error instanceof Error ? error.message : "Couldn't reset that team member's password.";
+}
