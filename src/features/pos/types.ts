@@ -12,6 +12,8 @@ import type { Order } from "@/features/orders/types";
 export interface MenuProduct {
   id: number;
   name: string;
+  /** Null for a product created outside the catalog module (e.g. demo-seeded) — grouped under "Other" in the POS category tabs. */
+  category: string | null;
   price_cents: number;
   price_formatted: string;
   currency: string;

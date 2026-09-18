@@ -89,6 +89,53 @@ describe("PosPage", () => {
     expect(screen.getByText("Cafe Latte (16oz)")).toBeInTheDocument();
   });
 
+  it("does not show category tabs when every product shares one category", async () => {
+    vi.mocked(posApi.fetchMenu).mockResolvedValue(
+      makeMenuResponse({
+        data: [
+          makeProduct({ id: 1, name: "Espresso (Single)", category: "Drinks" }),
+          makeProduct({ id: 2, name: "Cafe Latte (16oz)", category: "Drinks" }),
+        ],
+      }),
+    );
+    renderPage();
+
+    await screen.findByRole("button", { name: /Espresso \(Single\)/ });
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("shows category tabs and filters the grid when categories differ", async () => {
+    vi.mocked(posApi.fetchMenu).mockResolvedValue(
+      makeMenuResponse({
+        data: [
+          makeProduct({ id: 1, name: "Espresso (Single)", category: "Drinks" }),
+          makeProduct({ id: 2, name: "Croissant", category: "Bakery" }),
+          makeProduct({ id: 3, name: "Legacy Item", category: null }),
+        ],
+      }),
+    );
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByRole("button", { name: /Espresso \(Single\)/ });
+    expect(screen.getByText("Croissant")).toBeInTheDocument();
+    expect(screen.getByText("Legacy Item")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Bakery" }));
+    expect(screen.queryByText("Espresso (Single)")).not.toBeInTheDocument();
+    expect(screen.queryByText("Legacy Item")).not.toBeInTheDocument();
+    expect(screen.getByText("Croissant")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Other" }));
+    expect(screen.getByText("Legacy Item")).toBeInTheDocument();
+    expect(screen.queryByText("Croissant")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "All" }));
+    expect(screen.getByText("Espresso (Single)")).toBeInTheDocument();
+    expect(screen.getByText("Croissant")).toBeInTheDocument();
+    expect(screen.getByText("Legacy Item")).toBeInTheDocument();
+  });
+
   it("computes quantity, add-on, and discount totals in integer cents and completes a cash charge", async () => {
     vi.mocked(posApi.checkout).mockResolvedValue(makeCheckoutResponse({ order_number: "ORD-000099" }));
     renderPage();

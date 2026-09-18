@@ -9,6 +9,7 @@ export function makeProduct(overrides: Partial<MenuProduct> = {}): MenuProduct {
   return {
     id: 1,
     name: "Espresso (Single)",
+    category: null,
     price_cents,
     price_formatted: formatCents(price_cents, currency),
     currency,
