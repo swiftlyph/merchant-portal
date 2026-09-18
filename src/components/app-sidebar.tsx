@@ -8,6 +8,7 @@ import {
   WalletIcon,
   BarChart3Icon,
   SettingsIcon,
+  HistoryIcon,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -45,6 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const canViewReports = useCan("reports.view")
   const canViewProfile = useCan("profile.view")
   const canViewTeam = useCan("team.view")
+  const canViewAuditLog = useCan("audit_log.view")
 
   const navMain = [
     { title: "Dashboard", url: "/app/dashboard", icon: <LayoutDashboardIcon /> },
@@ -67,6 +69,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: "Cash Drawer", url: "/app/cash-drawer", icon: <WalletIcon /> },
     ...(canViewReports
       ? [{ title: "Reports", url: "/app/reports", icon: <BarChart3Icon /> }]
+      : []),
+    ...(canViewAuditLog
+      ? [{ title: "Audit Trail", url: "/app/audit-log", icon: <HistoryIcon /> }]
       : []),
     ...(canViewProfile || canViewTeam
       ? [{ title: "Settings", url: "/app/settings", icon: <SettingsIcon /> }]

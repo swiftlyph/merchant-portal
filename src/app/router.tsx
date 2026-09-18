@@ -17,6 +17,7 @@ import { CashDrawerPage } from "@/features/cash-sessions/pages/cash-drawer-page"
 import { SessionDetailPage } from "@/features/cash-sessions/pages/session-detail-page";
 import { ShiftReportPage } from "@/features/cash-sessions/pages/shift-report-page";
 import { ReportsPage } from "@/features/reports/pages/reports-page";
+import { AuditLogPage } from "@/features/audit-log/pages/audit-log-page";
 import { SettingsLayout } from "@/features/settings/pages/settings-layout";
 import { ProfilePage } from "@/features/settings/pages/profile-page";
 import { TeamPage } from "@/features/settings/pages/team-page";
@@ -107,6 +108,15 @@ export const router = createBrowserRouter([
           </RequirePermission>
         ),
         handle: { title: "Reports" },
+      },
+      {
+        path: "audit-log",
+        element: (
+          <RequirePermission permission="audit_log.view">
+            <AuditLogPage />
+          </RequirePermission>
+        ),
+        handle: { title: "Audit Trail" },
       },
       {
         path: "settings",
