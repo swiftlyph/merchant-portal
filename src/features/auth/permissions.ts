@@ -27,7 +27,8 @@ export type MerchantPermission =
   | "profile.view"
   | "profile.edit"
   | "team.view"
-  | "team.manage";
+  | "team.manage"
+  | "audit_log.view";
 
 export const MERCHANT_PERMISSION_VALUES: readonly MerchantPermission[] = [
   "orders.view",
@@ -47,6 +48,7 @@ export const MERCHANT_PERMISSION_VALUES: readonly MerchantPermission[] = [
   "profile.edit",
   "team.view",
   "team.manage",
+  "audit_log.view",
 ];
 
 /**
@@ -109,6 +111,7 @@ export const PERMISSION_LABEL: Record<MerchantPermission, string> = {
   "profile.edit": "Editing the business profile",
   "team.view": "Viewing the team",
   "team.manage": "Managing the team",
+  "audit_log.view": "Viewing the audit trail",
 };
 
 /**

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useAuthStore, selectHasPermission, useCan } from "./store";
-import { MANAGER_PRESET, OWNER_PRESET, STAFF_PRESET, accessLevelFor } from "./permissions";
+import {
+  MANAGER_PRESET,
+  MERCHANT_PERMISSION_VALUES,
+  OWNER_PRESET,
+  STAFF_PRESET,
+  accessLevelFor,
+} from "./permissions";
 
 const baseUser = {
   id: 1,
@@ -64,13 +70,13 @@ describe("selectHasPermission / useCan", () => {
 
 describe("role presets", () => {
   it("owner holds every catalog permission", () => {
-    expect(OWNER_PRESET).toHaveLength(17);
+    expect(OWNER_PRESET).toHaveLength(MERCHANT_PERMISSION_VALUES.length);
   });
 
   it("manager holds everything except profile.edit and team.manage", () => {
     expect(MANAGER_PRESET).not.toContain("profile.edit");
     expect(MANAGER_PRESET).not.toContain("team.manage");
-    expect(MANAGER_PRESET).toHaveLength(15);
+    expect(MANAGER_PRESET).toHaveLength(MERCHANT_PERMISSION_VALUES.length - 2);
   });
 
   it("staff holds exactly the till-facing subset", () => {
