@@ -12,9 +12,11 @@ import {
 import * as ordersApi from "@/features/orders/api";
 import * as kitchenApi from "@/features/kitchen-queue/api";
 import * as reportsApi from "@/features/reports/api";
+import * as ingredientsApi from "@/features/ingredients/api";
 import { makeOrder, makeOrdersPage } from "@/features/orders/test-fixtures";
 import { makeKitchenQueueSummary } from "@/features/kitchen-queue/test-fixtures";
 import { makeSalesSummary, makeTopItemsResponse, makeTopItemRow } from "@/features/reports/test-fixtures";
+import { makeIngredient, makeIngredientsPage } from "@/features/ingredients/test-fixtures";
 import { OWNER_PRESET } from "@/features/auth/permissions";
 import { todayDateParam } from "../today";
 
@@ -37,6 +39,10 @@ vi.mock("@/features/reports/api", () => ({
   fetchSalesSummary: vi.fn(),
   fetchSalesByDay: vi.fn(),
   fetchTopItems: vi.fn(),
+}));
+
+vi.mock("@/features/ingredients/api", () => ({
+  fetchIngredients: vi.fn(),
 }));
 
 const user = {
@@ -68,6 +74,7 @@ describe("DashboardPage", () => {
     vi.mocked(kitchenApi.fetchKitchenQueueSummary).mockResolvedValue(makeKitchenQueueSummary());
     vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(makeSalesSummary());
     vi.mocked(reportsApi.fetchTopItems).mockResolvedValue(makeTopItemsResponse());
+    vi.mocked(ingredientsApi.fetchIngredients).mockResolvedValue(makeIngredientsPage({ data: [] }));
   });
 
   it("renders the signed-in user's and merchant's name from the live /auth/me query", async () => {
@@ -286,6 +293,46 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("No sales yet today.")).toBeInTheDocument();
   });
 
+  it("shows a 'needs restocking' card combining out-of-stock and low-stock ingredients", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    vi.mocked(ingredientsApi.fetchIngredients).mockImplementation((filters) => {
+      if (filters?.status === "out_of_stock") {
+        return Promise.resolve(
+          makeIngredientsPage({
+            data: [makeIngredient({ id: 1, name: "Matcha Powder", stock_status: "out_of_stock" })],
+          }),
+        );
+      }
+      if (filters?.status === "low_stock") {
+        return Promise.resolve(
+          makeIngredientsPage({
+            data: [makeIngredient({ id: 2, name: "Oat Milk", stock_status: "low_stock" })],
+          }),
+        );
+      }
+      return Promise.resolve(makeIngredientsPage({ data: [] }));
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByText("Needs restocking")).toBeInTheDocument();
+    expect(await screen.findByText("Matcha Powder")).toBeInTheDocument();
+    expect(await screen.findByText("Oat Milk")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View inventory" })).toHaveAttribute(
+      "href",
+      "/app/inventory",
+    );
+  });
+
+  it("shows an all-stocked-up empty state when nothing is low or out of stock", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    vi.mocked(ingredientsApi.fetchIngredients).mockResolvedValue(makeIngredientsPage({ data: [] }));
+
+    renderDashboard();
+
+    expect(await screen.findByText("All stocked up")).toBeInTheDocument();
+  });
+
   it("New order and Queue quick actions link to the right routes", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
 
@@ -311,6 +358,7 @@ describe("DashboardPage permission gating", () => {
     useAuthStore.setState({ status: "authed", token: "tok", user: staffUser, sessionNotice: null });
     vi.mocked(ordersApi.fetchOrders).mockResolvedValue(makeOrdersPage());
     vi.mocked(kitchenApi.fetchKitchenQueueSummary).mockResolvedValue(makeKitchenQueueSummary());
+    vi.mocked(ingredientsApi.fetchIngredients).mockResolvedValue(makeIngredientsPage({ data: [] }));
   });
 
   it("staff (no orders.create): no 'New order' quick action, Queue still shows", async () => {
@@ -336,12 +384,12 @@ describe("DashboardPage permission gating", () => {
     expect(reportsApi.fetchSalesSummary).not.toHaveBeenCalled();
   });
 
-  it("staff (no reports.view): no top-products chart", async () => {
+  it("staff (no reports.view): no top-products chart, low-stock card still shows", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, staffUser));
 
     renderDashboard();
 
-    await screen.findByText("Pending in queue");
+    expect(await screen.findByText("Needs restocking")).toBeInTheDocument();
     expect(screen.queryByText("Top products today")).not.toBeInTheDocument();
     // reports.view-gated request should never even fire for staff.
     expect(reportsApi.fetchTopItems).not.toHaveBeenCalled();
