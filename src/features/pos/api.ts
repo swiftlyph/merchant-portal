@@ -11,6 +11,7 @@ function normalizeProduct(raw: Partial<MenuProduct> | null | undefined): MenuPro
   return {
     id: raw?.id ?? 0,
     name: raw?.name ?? "",
+    category: raw?.category ?? null,
     price_cents: raw?.price_cents ?? 0,
     price_formatted: raw?.price_formatted ?? "",
     currency: raw?.currency ?? "PHP",
