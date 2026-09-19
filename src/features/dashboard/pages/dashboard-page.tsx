@@ -10,13 +10,18 @@ import { useMe } from "@/features/auth/use-me";
 import { useKitchenQueueSummary } from "@/features/kitchen-queue/use-kitchen-queue-summary";
 import { formatWaitingTime } from "@/features/kitchen-queue/waiting-time";
 import { useSalesSummary } from "@/features/reports/use-sales-summary";
+import { useTopItems } from "@/features/reports/use-top-items";
 import { todayDateParam } from "../today";
 import { GreetingHeader } from "../components/greeting-header";
 import { QuickActions } from "../components/quick-actions";
 import { StatCard } from "../components/stat-card";
 import { PaymentMethodsMini } from "../components/payment-methods-mini";
+import { TopProductsChart } from "../components/top-products-chart";
 import { RecentOrdersCard } from "../components/recent-orders-card";
 import { useOrdersToday } from "../use-orders-today";
+
+/** Small enough to be "the handful worth a glance," capped at MAX_LIMIT server-side anyway. */
+const TOP_PRODUCTS_LIMIT = 5;
 
 /**
  * `/app/dashboard`. `useMe` stays wired here as the one live, authenticated
@@ -25,7 +30,7 @@ import { useOrdersToday } from "../use-orders-today";
  * expiry via the normal registerOnUnauthorized path.
  *
  * Every number on this page is something GET /merchant/orders, the
- * kitchen-queue summary, or (as of P6/F8) the sales-summary report can
+ * kitchen-queue summary, or the sales-summary/top-items reports can
  * answer cheaply and exactly today — no invented metrics, no client-side
  * revenue aggregation.
  */
@@ -43,6 +48,10 @@ export function DashboardPage() {
   // The query is conditional too, not just the card — staff has no reason
   // to trigger a reports.view-gated request at all.
   const revenueToday = useSalesSummary({ from: today, to: today }, { enabled: canViewReports });
+  const topProducts = useTopItems(
+    { from: today, to: today, limit: TOP_PRODUCTS_LIMIT },
+    { enabled: canViewReports },
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,6 +140,16 @@ export function DashboardPage() {
             revenueToday.error instanceof Error ? revenueToday.error.message : undefined
           }
           onRetry={() => void revenueToday.refetch()}
+        />
+      )}
+
+      {canViewReports && (
+        <TopProductsChart
+          items={topProducts.data?.data}
+          isPending={topProducts.isPending}
+          isError={topProducts.isError}
+          error={topProducts.error}
+          onRetry={() => void topProducts.refetch()}
         />
       )}
 

@@ -14,8 +14,9 @@ import * as kitchenApi from "@/features/kitchen-queue/api";
 import * as reportsApi from "@/features/reports/api";
 import { makeOrder, makeOrdersPage } from "@/features/orders/test-fixtures";
 import { makeKitchenQueueSummary } from "@/features/kitchen-queue/test-fixtures";
-import { makeSalesSummary } from "@/features/reports/test-fixtures";
+import { makeSalesSummary, makeTopItemsResponse, makeTopItemRow } from "@/features/reports/test-fixtures";
 import { OWNER_PRESET } from "@/features/auth/permissions";
+import { todayDateParam } from "../today";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -66,6 +67,7 @@ describe("DashboardPage", () => {
     vi.mocked(ordersApi.fetchOrders).mockResolvedValue(makeOrdersPage());
     vi.mocked(kitchenApi.fetchKitchenQueueSummary).mockResolvedValue(makeKitchenQueueSummary());
     vi.mocked(reportsApi.fetchSalesSummary).mockResolvedValue(makeSalesSummary());
+    vi.mocked(reportsApi.fetchTopItems).mockResolvedValue(makeTopItemsResponse());
   });
 
   it("renders the signed-in user's and merchant's name from the live /auth/me query", async () => {
@@ -256,6 +258,34 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("View all orders")).toBeInTheDocument();
   });
 
+  it("shows today's top products chart, fed by the top-items report for today's date", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    vi.mocked(reportsApi.fetchTopItems).mockResolvedValue(
+      makeTopItemsResponse({
+        data: [
+          makeTopItemRow({ product_name: "Cafe Latte (16oz)", quantity_sold: 12 }),
+          makeTopItemRow({ product_name: "Iced Mocha", quantity_sold: 5 }),
+        ],
+      }),
+    );
+
+    renderDashboard();
+
+    expect(await screen.findByText("Top products today")).toBeInTheDocument();
+    expect(reportsApi.fetchTopItems).toHaveBeenCalledWith(
+      expect.objectContaining({ from: todayDateParam(), to: todayDateParam(), limit: 5 }),
+    );
+  });
+
+  it("shows an empty state for the top products chart when nothing sold today", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
+    vi.mocked(reportsApi.fetchTopItems).mockResolvedValue(makeTopItemsResponse({ data: [] }));
+
+    renderDashboard();
+
+    expect(await screen.findByText("No sales yet today.")).toBeInTheDocument();
+  });
+
   it("New order and Queue quick actions link to the right routes", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, user));
 
@@ -304,5 +334,16 @@ describe("DashboardPage permission gating", () => {
     expect(screen.queryByText("Payment methods today")).not.toBeInTheDocument();
     // reports.view-gated request should never even fire for staff.
     expect(reportsApi.fetchSalesSummary).not.toHaveBeenCalled();
+  });
+
+  it("staff (no reports.view): no top-products chart", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(jsonResponse(200, staffUser));
+
+    renderDashboard();
+
+    await screen.findByText("Pending in queue");
+    expect(screen.queryByText("Top products today")).not.toBeInTheDocument();
+    // reports.view-gated request should never even fire for staff.
+    expect(reportsApi.fetchTopItems).not.toHaveBeenCalled();
   });
 });
