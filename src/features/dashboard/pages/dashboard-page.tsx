@@ -10,13 +10,21 @@ import { useMe } from "@/features/auth/use-me";
 import { useKitchenQueueSummary } from "@/features/kitchen-queue/use-kitchen-queue-summary";
 import { formatWaitingTime } from "@/features/kitchen-queue/waiting-time";
 import { useSalesSummary } from "@/features/reports/use-sales-summary";
+import { useTopItems } from "@/features/reports/use-top-items";
+import { useIngredients } from "@/features/ingredients/use-ingredients";
 import { todayDateParam } from "../today";
 import { GreetingHeader } from "../components/greeting-header";
 import { QuickActions } from "../components/quick-actions";
 import { StatCard } from "../components/stat-card";
 import { PaymentMethodsMini } from "../components/payment-methods-mini";
+import { TopProductsChart } from "../components/top-products-chart";
+import { LowStockCard } from "../components/low-stock-card";
 import { RecentOrdersCard } from "../components/recent-orders-card";
 import { useOrdersToday } from "../use-orders-today";
+
+/** Small enough to be "the handful worth a glance," capped at MAX_LIMIT server-side anyway. */
+const TOP_PRODUCTS_LIMIT = 5;
+const LOW_STOCK_FETCH_COUNT = 5;
 
 /**
  * `/app/dashboard`. `useMe` stays wired here as the one live, authenticated
@@ -25,9 +33,9 @@ import { useOrdersToday } from "../use-orders-today";
  * expiry via the normal registerOnUnauthorized path.
  *
  * Every number on this page is something GET /merchant/orders, the
- * kitchen-queue summary, or (as of P6/F8) the sales-summary report can
- * answer cheaply and exactly today — no invented metrics, no client-side
- * revenue aggregation.
+ * kitchen-queue summary, the sales-summary/top-items reports, or
+ * GET /merchant/ingredients can answer cheaply and exactly today — no
+ * invented metrics, no client-side revenue aggregation.
  */
 export function DashboardPage() {
   const storeUser = useAuthStore((s) => s.user);
@@ -43,6 +51,15 @@ export function DashboardPage() {
   // The query is conditional too, not just the card — staff has no reason
   // to trigger a reports.view-gated request at all.
   const revenueToday = useSalesSummary({ from: today, to: today }, { enabled: canViewReports });
+  const topProducts = useTopItems(
+    { from: today, to: today, limit: TOP_PRODUCTS_LIMIT },
+    { enabled: canViewReports },
+  );
+
+  // Two requests because GET /merchant/ingredients only filters by one
+  // StockStatus at a time — same endpoint the Inventory page uses.
+  const outOfStock = useIngredients({ status: "out_of_stock", perPage: LOW_STOCK_FETCH_COUNT });
+  const lowStock = useIngredients({ status: "low_stock", perPage: LOW_STOCK_FETCH_COUNT });
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,6 +150,36 @@ export function DashboardPage() {
           onRetry={() => void revenueToday.refetch()}
         />
       )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {canViewReports && (
+          <TopProductsChart
+            items={topProducts.data?.data}
+            isPending={topProducts.isPending}
+            isError={topProducts.isError}
+            error={topProducts.error}
+            onRetry={() => void topProducts.refetch()}
+          />
+        )}
+
+        <LowStockCard
+          outOfStock={outOfStock.data?.data}
+          lowStock={lowStock.data?.data}
+          isPending={outOfStock.isPending || lowStock.isPending}
+          isError={outOfStock.isError || lowStock.isError}
+          errorMessage={
+            outOfStock.error instanceof Error
+              ? outOfStock.error.message
+              : lowStock.error instanceof Error
+                ? lowStock.error.message
+                : undefined
+          }
+          onRetry={() => {
+            void outOfStock.refetch();
+            void lowStock.refetch();
+          }}
+        />
+      </div>
 
       <RecentOrdersCard />
     </div>
