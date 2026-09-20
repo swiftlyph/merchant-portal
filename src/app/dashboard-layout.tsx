@@ -1,6 +1,7 @@
 import { Link, Outlet, useMatches } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { FullscreenToggle } from "@/components/ui/fullscreen-toggle";
 import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
@@ -76,7 +77,8 @@ export function DashboardLayout() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="px-4">
+          <div className="flex items-center gap-1 px-4">
+            <FullscreenToggle />
             <ThemeToggle />
           </div>
         </header>
