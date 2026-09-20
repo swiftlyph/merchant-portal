@@ -27,6 +27,7 @@ describe("fetchMenu", () => {
     expect(result.data[0]).toEqual({
       id: 0,
       name: "",
+      category: null,
       price_cents: 0,
       price_formatted: "",
       currency: "PHP",
